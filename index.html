@@ -155,7 +155,7 @@ nav.bottomnav{
 
 .garment-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 .garment-card{display:flex; flex-direction:column; cursor:pointer;}
-.garment-card .img-wrap{aspect-ratio:3/4; background:var(--ivory-soft); overflow:hidden; position:relative;}
+.img-wrap{aspect-ratio:3/4; background:var(--ivory-soft); overflow:hidden; position:relative;}
 .check-box{
   position:absolute; top:8px; right:8px; width:26px; height:26px; border-radius:8px;
   background:rgba(255,255,255,0.85); border:1.5px solid var(--rosebronze-soft);
@@ -163,7 +163,7 @@ nav.bottomnav{
   box-shadow:var(--shadow-sm); font-size:15px;
 }
 .check-box.on{background:var(--sage); border-color:var(--sage); color:#fff;}
-.garment-card img{width:100%; height:100%; object-fit:cover; display:block;}
+.img-wrap img{width:100%; height:100%; object-fit:cover; display:block;}
 .garment-card .no-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--plum-soft); font-size:11px;}
 .garment-card .info{padding:10px 10px 12px;}
 .garment-card .name{font-family:var(--font-display); font-size:16px; font-weight:600; color:var(--plum); line-height:1.2; margin-bottom:6px;}
@@ -251,6 +251,9 @@ nav.bottomnav{
 .admin-list-item .actions{margin-left:auto; display:flex; gap:6px;}
 .icobtn{background:var(--ivory-soft); border:none; border-radius:8px; width:30px;height:30px; font-size:13px;}
 
+.summary-panel{border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); margin-bottom:6px; border:1px solid rgba(59,36,54,0.08);}
+.summary-panel-head{background:linear-gradient(150deg, var(--plum), var(--plum-soft) 70%); color:var(--rosebronze-soft); font-family:var(--font-display); font-size:18px; font-weight:600; padding:16px 18px;}
+.summary-panel-body{background:#fff; padding:16px;}
 .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
 .stat-box{background:#fff; border-radius:14px; padding:14px; box-shadow:var(--shadow-sm);}
 .stat-box .val{font-family:var(--font-mono); font-size:20px; color:var(--plum); font-weight:700;}
@@ -442,7 +445,7 @@ async function apiLoadAll(){
     apiReady = true;
     saveLocal();
     setSyncStatus(true, 'Conectado (Cloudflare D1)');
-    if(['catalogo','look','cuenta'].includes(STATE.currentView)) render();
+    if(['catalogo','look'].includes(STATE.currentView)) render();
   }catch(e){
     console.error('No se pudo conectar a la API D1, usando datos locales', e);
     apiReady = false;
@@ -558,7 +561,7 @@ function fmtDate(iso){ const d=new Date(iso); return d.toLocaleDateString('es-EC
 /* =========================================================================
    VISTA: CATÁLOGO
    ========================================================================= */
-const CATEGORIAS_PRINCIPALES = ['Ropa','Collares','Aretes','Tobilleras'];
+const CATEGORIAS_PRINCIPALES = ['Ropa','Collares','Aretes','Tobilleras','Chompas','Bléiser'];
 let catalogoFiltro = 'Ropa';
 function viewCatalogo(){
   const disponibles = STATE.garments.filter(g=>g.activo!==false && (g.estado||'disponible')==='disponible');
@@ -602,7 +605,7 @@ function garmentCard(g){
   </div>`;
 }
 function categoriaLabel(c, principal){
-  const sub = {pantalon:'Pantalón',blusa:'Blusa',chaqueta:'Chaqueta',vestido:'Vestido',calzado:'Calzado',falda:'Falda',camisa:'Camisa',collares:'Collares',aretes:'Aretes',tobilleras:'Tobilleras'}[c];
+  const sub = {pantalon:'Pantalón',blusa:'Blusa',chaqueta:'Chaqueta',vestido:'Vestido',calzado:'Calzado',falda:'Falda',camisa:'Camisa',collares:'Collares',aretes:'Aretes',tobilleras:'Tobilleras',chompas:'Chompas',bleiser:'Bléiser'}[c];
   return sub || principal || (c? c.charAt(0).toUpperCase()+c.slice(1) : 'Prenda');
 }
 function generoLabel(g){ return {dama:'Dama',caballero:'Caballero',nino:'Niño/a',unisex:'Unisex'}[g]||g||''; }
@@ -1012,6 +1015,7 @@ function viewCuenta(){
       <div class="tab-chip ${adminTab==='subir'?'active':''}" onclick="setAdminTab('subir')">Subir prenda</div>
       <div class="tab-chip ${adminTab==='catalogo'?'active':''}" onclick="setAdminTab('catalogo')">Catálogo</div>
       <div class="tab-chip ${adminTab==='tickets'?'active':''}" onclick="setAdminTab('tickets')">Tickets</div>
+      <div class="tab-chip ${adminTab==='reporte'?'active':''}" onclick="setAdminTab('reporte')">Reporte</div>
       <div class="tab-chip ${adminTab==='config'?'active':''}" onclick="setAdminTab('config')">Config.</div>
       <div class="tab-chip ${adminTab==='respaldo'?'active':''}" onclick="setAdminTab('respaldo')">Respaldo</div>
     </div>
@@ -1047,13 +1051,14 @@ async function modalLogin(){
 
 let adminTab = 'resumen';
 function setAdminTab(t){ adminTab=t; document.getElementById('adminBody').innerHTML = renderAdminTab(); document.querySelectorAll('.tab-chip').forEach(c=>c.classList.toggle('active', c.textContent.trim()===tabLabel(t))); }
-function tabLabel(t){ return {resumen:'Resumen',subir:'Subir prenda',catalogo:'Catálogo',tickets:'Tickets',config:'Config.',respaldo:'Respaldo'}[t]; }
+function tabLabel(t){ return {resumen:'Resumen',subir:'Subir prenda',catalogo:'Catálogo',tickets:'Tickets',reporte:'Reporte',config:'Config.',respaldo:'Respaldo'}[t]; }
 
 function renderAdminTab(){
   if(adminTab==='resumen') return adminResumen();
   if(adminTab==='subir') return adminSubirForm();
   if(adminTab==='catalogo') return adminCatalogoList();
   if(adminTab==='tickets') return adminTicketsList();
+  if(adminTab==='reporte') return adminReporte();
   if(adminTab==='config') return adminConfig();
   if(adminTab==='respaldo') return adminRespaldo();
 }
@@ -1066,15 +1071,20 @@ function adminResumen(){
   const porGenero = {};
   STATE.tickets.forEach(t=>{ const g=t.cliente.genero||'—'; porGenero[g]=(porGenero[g]||0)+1; });
   return `
-    <div class="stat-grid">
-      <div class="stat-box"><div class="val">${disponiblesGlobal}</div><div class="lbl">Disponibles ahora</div></div>
-      <div class="stat-box"><div class="val">${STATE.tickets.length}</div><div class="lbl">Tickets emitidos</div></div>
-      <div class="stat-box"><div class="val">${money(totalVentas)}</div><div class="lbl">Ventas totales</div></div>
-      <div class="stat-box"><div class="val">${enCarritoGlobal}</div><div class="lbl">Reservadas en carritos (todas las clientas)</div></div>
-    </div>
-    <div class="card" style="padding:14px;">
-      <h3 style="font-size:14px;margin-bottom:8px;">Ventas por género</h3>
-      ${Object.entries(porGenero).length? Object.entries(porGenero).map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>${generoLabel(k)}</span><span class="mono">${v}</span></div>`).join('') : '<p style="font-size:12px;color:var(--plum-soft);">Aún no hay ventas.</p>'}
+    <div class="summary-panel">
+      <div class="summary-panel-head">📊 Resumen general de la tienda</div>
+      <div class="summary-panel-body">
+        <div class="stat-grid">
+          <div class="stat-box"><div class="val">${disponiblesGlobal}</div><div class="lbl">Disponibles ahora</div></div>
+          <div class="stat-box"><div class="val">${STATE.tickets.length}</div><div class="lbl">Tickets emitidos</div></div>
+          <div class="stat-box"><div class="val">${money(totalVentas)}</div><div class="lbl">Ventas totales</div></div>
+          <div class="stat-box"><div class="val">${enCarritoGlobal}</div><div class="lbl">Reservadas en carritos (todas las clientas)</div></div>
+        </div>
+        <div class="card" style="padding:14px;">
+          <h3 style="font-size:14px;margin-bottom:8px;">Ventas por género</h3>
+          ${Object.entries(porGenero).length? Object.entries(porGenero).map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>${generoLabel(k)}</span><span class="mono">${v}</span></div>`).join('') : '<p style="font-size:12px;color:var(--plum-soft);">Aún no hay ventas.</p>'}
+        </div>
+      </div>
     </div>
   `;
 }
@@ -1110,11 +1120,13 @@ function adminSubirForm(){
         <select id="ngGenero"><option value="dama">Dama</option><option value="caballero">Caballero</option><option value="nino">Niño/a</option><option value="unisex">Unisex</option></select>
       </div>
       <div class="field"><label>Precio (USD)</label><input id="ngPrecio" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label>Cantidad (mismas características)</label><input id="ngCantidad" type="number" min="1" step="1" value="1" placeholder="1"></div>
+      <div class="note-box" style="margin-top:-6px;margin-bottom:14px;">Si tienes varias piezas idénticas (misma foto, talla y precio), pon aquí cuántas — se publican como piezas independientes, cada una se puede reservar y vender por separado.</div>
       <div class="field"><label>Tallas disponibles</label>
         <div class="chk-row">${['XS','S','M','L','XL','Única'].map(t=>`<div class="chk-pill ${newGarmentTallas.has(t)?'on':''}" onclick="toggleTalla('${t}')">${t}</div>`).join('')}</div>
       </div>
       <div class="field"><label>Combina bien con</label>
-        <div class="chk-row">${['blusa','camisa','pantalon','falda','vestido','chaqueta','calzado','collares','aretes','tobilleras'].map(c=>`<div class="chk-pill ${newGarmentCombina.has(c)?'on':''}" onclick="toggleCombina('${c}')">${categoriaLabel(c)}</div>`).join('')}</div>
+        <div class="chk-row">${['blusa','camisa','pantalon','falda','vestido','chaqueta','calzado','chompas','bleiser','collares','aretes','tobilleras'].map(c=>`<div class="chk-pill ${newGarmentCombina.has(c)?'on':''}" onclick="toggleCombina('${c}')">${categoriaLabel(c)}</div>`).join('')}</div>
       </div>
       <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="saveNewGarment()">💾 Guardar / publicar prenda</button>
     </div>
@@ -1131,12 +1143,13 @@ function toggleCombina(c){ newGarmentCombina.has(c)?newGarmentCombina.delete(c):
 async function saveNewGarment(){
   const nombre = document.getElementById('ngNombre').value.trim();
   const precio = parseFloat(document.getElementById('ngPrecio').value)||0;
+  const cantidad = Math.max(1, parseInt(document.getElementById('ngCantidad').value)||1);
   if(!nombre){ toast('Ingresa el nombre de la prenda'); return; }
+  const PRINCIPAL_TO_CATEGORIA = {Ropa:'ropa', Collares:'collares', Aretes:'aretes', Tobilleras:'tobilleras', Chompas:'chompas', 'Bléiser':'bleiser'};
   const subCategoria = newGarmentPrincipal==='Ropa'
     ? document.getElementById('ngCategoria').value
-    : newGarmentPrincipal.toLowerCase();
-  const g = {
-    id: 'g_'+Date.now(),
+    : (PRINCIPAL_TO_CATEGORIA[newGarmentPrincipal] || newGarmentPrincipal.toLowerCase());
+  const base = {
     nombre, precio,
     categoriaPrincipal: newGarmentPrincipal,
     categoria: subCategoria,
@@ -1148,10 +1161,15 @@ async function saveNewGarment(){
     estado: 'disponible',
     creado: todayISO()
   };
-  STATE.garments.unshift(g);
-  await fbSaveGarment(g);
+  const nuevas = [];
+  for(let i=0; i<cantidad; i++){
+    const g = {...base, id: 'g_'+Date.now()+'_'+i};
+    nuevas.push(g);
+    STATE.garments.unshift(g);
+  }
+  for(const g of nuevas){ await fbSaveGarment(g); }
   newGarmentImg=null; newGarmentTallas=new Set(); newGarmentCombina=new Set(); newGarmentPrincipal='Ropa';
-  toast('Prenda publicada 🎉');
+  toast(cantidad>1 ? `${cantidad} piezas publicadas 🎉` : 'Prenda publicada 🎉');
   setAdminTab('catalogo');
 }
 
@@ -1278,6 +1296,101 @@ function exportTicketsExcel(){
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Tickets');
   XLSX.writeFile(wb, 'OutfitLens_Tickets.xlsx');
+}
+
+/* ----- Reporte (inventario + ventas por categoría): pantalla + Excel ----- */
+function reporteInventarioPorCategoria(){
+  const filas = CATEGORIAS_PRINCIPALES.map(cat=>{
+    const items = STATE.garments.filter(g=>(g.categoriaPrincipal||'Ropa')===cat);
+    const disponibles = items.filter(g=>g.activo!==false && (g.estado||'disponible')==='disponible');
+    const reservadas = items.filter(g=>g.estado==='en_carrito');
+    const vendidas = items.filter(g=>g.estado==='vendido');
+    return {
+      categoria: cat,
+      disponibles: disponibles.length,
+      reservadas: reservadas.length,
+      vendidas: vendidas.length,
+      valorDisponible: disponibles.reduce((s,g)=>s+(g.precio||0),0)
+    };
+  });
+  return filas;
+}
+function reporteVentasPorCategoria(){
+  const acc = {};
+  CATEGORIAS_PRINCIPALES.forEach(c=> acc[c] = {unidades:0, total:0});
+  STATE.tickets.forEach(t=>{
+    (t.items||[]).forEach(i=>{
+      const cat = i.categoriaPrincipal || 'Ropa';
+      if(!acc[cat]) acc[cat] = {unidades:0, total:0};
+      acc[cat].unidades += i.cantidad||1;
+      acc[cat].total += (i.precio||0)*(i.cantidad||1);
+    });
+  });
+  return Object.entries(acc).map(([categoria, v])=>({categoria, ...v}));
+}
+function adminReporte(){
+  const inv = reporteInventarioPorCategoria();
+  const ven = reporteVentasPorCategoria();
+  const totalInvValor = inv.reduce((s,f)=>s+f.valorDisponible,0);
+  const totalVenUnidades = ven.reduce((s,f)=>s+f.unidades,0);
+  const totalVenMonto = ven.reduce((s,f)=>s+f.total,0);
+  return `
+    <div class="summary-panel">
+      <div class="summary-panel-head">📄 Reporte de inventario y ventas</div>
+      <div class="summary-panel-body">
+        <h3 style="font-size:14px;margin-bottom:8px;">Inventario por categoría</h3>
+        <div class="card" style="padding:10px; margin-bottom:16px; overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <thead><tr style="text-align:left; color:var(--plum-soft);">
+              <th style="padding:6px 4px;">Categoría</th><th style="padding:6px 4px;">Disp.</th><th style="padding:6px 4px;">Reserv.</th><th style="padding:6px 4px;">Vend.</th><th style="padding:6px 4px;">Valor disp.</th>
+            </tr></thead>
+            <tbody>
+              ${inv.map(f=>`<tr style="border-top:1px solid var(--ivory-soft);">
+                <td style="padding:6px 4px;font-weight:600;">${f.categoria}</td>
+                <td style="padding:6px 4px;" class="mono">${f.disponibles}</td>
+                <td style="padding:6px 4px;" class="mono">${f.reservadas}</td>
+                <td style="padding:6px 4px;" class="mono">${f.vendidas}</td>
+                <td style="padding:6px 4px;" class="mono">${money(f.valorDisponible)}</td>
+              </tr>`).join('')}
+              <tr style="border-top:2px solid var(--plum);"><td style="padding:6px 4px;font-weight:700;">Total</td><td></td><td></td><td></td><td style="padding:6px 4px;font-weight:700;" class="mono">${money(totalInvValor)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3 style="font-size:14px;margin-bottom:8px;">Ventas por categoría</h3>
+        <div class="card" style="padding:10px; margin-bottom:16px; overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <thead><tr style="text-align:left; color:var(--plum-soft);">
+              <th style="padding:6px 4px;">Categoría</th><th style="padding:6px 4px;">Unidades</th><th style="padding:6px 4px;">Total vendido</th>
+            </tr></thead>
+            <tbody>
+              ${ven.map(f=>`<tr style="border-top:1px solid var(--ivory-soft);">
+                <td style="padding:6px 4px;font-weight:600;">${f.categoria}</td>
+                <td style="padding:6px 4px;" class="mono">${f.unidades}</td>
+                <td style="padding:6px 4px;" class="mono">${money(f.total)}</td>
+              </tr>`).join('')}
+              <tr style="border-top:2px solid var(--plum);"><td style="padding:6px 4px;font-weight:700;">Total</td><td style="padding:6px 4px;font-weight:700;" class="mono">${totalVenUnidades}</td><td style="padding:6px 4px;font-weight:700;" class="mono">${money(totalVenMonto)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="exportReporteExcel()">⬇️ Descargar reporte en Excel</button>
+        <p style="font-size:11px;color:var(--plum-soft);margin-top:8px;text-align:center;">El archivo se guarda automáticamente en la carpeta "Descargas" de tu celular.</p>
+      </div>
+    </div>
+  `;
+}
+function exportReporteExcel(){
+  const inv = reporteInventarioPorCategoria().map(f=>({
+    Categoría:f.categoria, Disponibles:f.disponibles, Reservadas:f.reservadas, Vendidas:f.vendidas, 'Valor disponible':f.valorDisponible
+  }));
+  const ven = reporteVentasPorCategoria().map(f=>({
+    Categoría:f.categoria, Unidades:f.unidades, 'Total vendido':f.total
+  }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(inv), 'Inventario');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ven), 'Ventas por categoría');
+  const fecha = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `OutfitLens_Reporte_${fecha}.xlsx`);
+  toast('Reporte descargado a tu carpeta de Descargas 📥');
 }
 
 /* ----- Config tienda ----- */
