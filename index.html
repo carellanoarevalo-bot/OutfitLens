@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>OutfitLens · Mírate, combínate y compra con seguridad</title>
+<meta name="description" content="OutfitLens: prueba digitalmente tu outfit y compra con seguridad.">
+<meta name="theme-color" content="#3B2436">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ivory:#F7F2EC;
+  --ivory-soft:#EFE6D8;
+  --plum:#3B2436;
+  --plum-soft:#54344A;
+  --plum-line:#6b4d61;
+  --rosebronze:#B8845F;
+  --rosebronze-soft:#D8AE86;
+  --sage:#6B7A5E;
+  --ink:#241A22;
+  --danger:#A23E3E;
+  --ok:#4C6B4F;
+  --radius:18px;
+  --radius-sm:10px;
+  --shadow: 0 10px 30px rgba(36,26,34,0.14);
+  --shadow-sm: 0 4px 14px rgba(36,26,34,0.10);
+  --font-display:'Cormorant Garamond', serif;
+  --font-body:'Work Sans', sans-serif;
+  --font-mono:'Space Mono', monospace;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:var(--font-body);
+  background:var(--ivory);
+  color:var(--ink);
+  overscroll-behavior-y:none;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.display{font-family:var(--font-display); font-weight:600; color:var(--plum); margin:0;}
+.mono{font-family:var(--font-mono);}
+button{font-family:inherit; cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+a{color:inherit;}
+::-webkit-scrollbar{display:none;}
+
+/* ===== Swing tag signature element ===== */
+.swing-tag{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:var(--ivory);
+  border:1px solid var(--rosebronze-soft);
+  border-radius:4px 12px 12px 4px;
+  padding:4px 10px 4px 18px;
+  font-size:12px;
+  font-weight:600;
+  color:var(--plum-soft);
+  white-space:nowrap;
+}
+.swing-tag::before{
+  content:'';
+  position:absolute;
+  left:7px; top:50%; transform:translateY(-50%);
+  width:5px;height:5px;border-radius:50%;
+  background:var(--plum);
+  box-shadow:0 0 0 1px var(--rosebronze-soft);
+}
+.swing-tag.price{color:var(--plum); font-family:var(--font-mono); font-size:13px;}
+.swing-tag.ticket{font-size:22px; padding:8px 16px 8px 26px;}
+.swing-tag.ticket::before{width:8px;height:8px; left:11px;}
+
+/* ===== App shell ===== */
+#app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; background:var(--ivory); position:relative;}
+.hidden{display:none !important;}
+
+header.topbar{
+  background:linear-gradient(160deg, var(--plum), var(--plum-soft));
+  padding:18px 20px 22px;
+  color:var(--ivory);
+  position:sticky; top:0; z-index:20;
+  box-shadow:var(--shadow-sm);
+}
+.topbar-row{display:flex; align-items:center; justify-content:space-between;}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand-mark{
+  width:34px;height:34px;border-radius:9px;
+  background:var(--rosebronze); color:var(--plum);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:16px;
+  border:1px solid var(--rosebronze-soft);
+}
+.brand h1{font-size:22px; color:var(--ivory); letter-spacing:.3px;}
+.brand .slogan{font-size:11px; color:var(--rosebronze-soft); letter-spacing:.4px; margin-top:-2px;}
+.icon-btn{
+  background:rgba(247,242,236,0.12); border:1px solid rgba(247,242,236,0.25);
+  color:var(--ivory); border-radius:10px; padding:8px 10px; font-size:16px;
+}
+.sync-chip{font-size:10px; color:var(--rosebronze-soft); display:flex; align-items:center; gap:4px; margin-top:8px;}
+.sync-dot{width:6px;height:6px;border-radius:50%; background:#7cae7e;}
+.sync-dot.off{background:#c98b8b;}
+
+main{flex:1; padding:16px 16px 100px; overflow-y:auto;}
+.view{animation:fadein .25s ease;}
+@keyframes fadein{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+nav.bottomnav{
+  position:sticky; bottom:0; z-index:30;
+  background:var(--ivory); border-top:1px solid var(--ivory-soft);
+  display:flex; justify-content:space-around; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  box-shadow:0 -6px 18px rgba(36,26,34,0.06);
+}
+.navbtn{
+  background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:2px;
+  color:var(--plum-soft); font-size:10.5px; font-weight:600; padding:6px 10px; border-radius:12px;
+}
+.navbtn .ic{font-size:20px;}
+.navbtn.active{color:var(--rosebronze); background:var(--plum); }
+.navbtn.active .ic{filter:drop-shadow(0 0 0 var(--rosebronze));}
+
+/* ===== Cards ===== */
+.card{
+  background:#fff; border-radius:var(--radius); box-shadow:var(--shadow-sm);
+  border:1px solid rgba(59,36,54,0.06); overflow:hidden;
+}
+.section-title{display:flex; align-items:baseline; justify-content:space-between; margin:22px 0 10px;}
+.section-title h2{font-size:20px;}
+.section-title .hint{font-size:12px; color:var(--plum-soft); font-weight:500;}
+
+.hero-cta{
+  background:linear-gradient(150deg, var(--plum), var(--plum-soft) 70%);
+  border-radius:var(--radius); padding:22px 20px; color:var(--ivory); margin-bottom:18px;
+  box-shadow:var(--shadow);
+}
+.hero-cta .eyebrow{font-size:11px; letter-spacing:1.5px; color:var(--rosebronze-soft); font-weight:700; text-transform:uppercase;}
+.hero-cta h2{color:var(--ivory); font-size:26px; margin:6px 0 4px;}
+.hero-cta p{font-size:13px; color:#e6d9df; margin:0 0 14px; line-height:1.4;}
+.btn{
+  border:none; border-radius:12px; padding:12px 18px; font-weight:700; font-size:14px;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+}
+.btn-primary{background:var(--rosebronze); color:var(--plum);}
+.btn-primary:active{background:var(--rosebronze-soft);}
+.btn-outline{background:transparent; border:1.5px solid var(--rosebronze-soft); color:var(--ivory);}
+.btn-ghost{background:var(--ivory-soft); color:var(--plum);}
+.btn-danger{background:var(--danger); color:#fff;}
+.btn-block{width:100%;}
+.btn:disabled{opacity:.45;}
+
+.garment-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.garment-card{display:flex; flex-direction:column; cursor:pointer;}
+.garment-card .img-wrap{aspect-ratio:3/4; background:var(--ivory-soft); overflow:hidden; position:relative;}
+.check-box{
+  position:absolute; top:8px; right:8px; width:26px; height:26px; border-radius:8px;
+  background:rgba(255,255,255,0.85); border:1.5px solid var(--rosebronze-soft);
+  display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--sage);
+  box-shadow:var(--shadow-sm); font-size:15px;
+}
+.check-box.on{background:var(--sage); border-color:var(--sage); color:#fff;}
+.garment-card img{width:100%; height:100%; object-fit:cover; display:block;}
+.garment-card .no-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--plum-soft); font-size:11px;}
+.garment-card .info{padding:10px 10px 12px;}
+.garment-card .name{font-family:var(--font-display); font-size:16px; font-weight:600; color:var(--plum); line-height:1.2; margin-bottom:6px;}
+.garment-card .meta-row{display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:wrap;}
+
+.empty-state{text-align:center; padding:40px 16px; color:var(--plum-soft);}
+.empty-state .ic{font-size:36px; margin-bottom:8px;}
+
+/* ===== Login ===== */
+#loginScreen{
+  position:fixed; inset:0; z-index:100; background:var(--plum);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.login-box{
+  width:100%; max-width:380px; background:var(--ivory); border-radius:24px; overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.35); border:1px solid var(--rosebronze-soft);
+}
+.login-head{background:linear-gradient(160deg, var(--plum), var(--plum-soft)); padding:34px 26px 26px; text-align:center;}
+.login-head .brand-mark{margin:0 auto 12px; width:52px; height:52px; font-size:22px; border-radius:14px;}
+.login-head h1{color:var(--ivory); font-size:28px;}
+.login-head .slogan{color:var(--rosebronze-soft); font-size:12.5px; margin-top:4px; letter-spacing:.3px;}
+.login-body{padding:26px;}
+.login-body .lead{font-size:13px; color:var(--plum-soft); margin-bottom:16px; text-align:center;}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:11.5px; font-weight:700; color:var(--plum-soft); margin-bottom:6px; letter-spacing:.3px; text-transform:uppercase;}
+.field input, .field select, .field textarea{
+  width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--ivory-soft);
+  background:#fff; font-size:14px; color:var(--ink);
+}
+.field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--rosebronze); border-color:var(--rosebronze);}
+.error-msg{color:var(--danger); font-size:12.5px; margin:6px 0 0;}
+.login-body .skip{text-align:center; margin-top:14px; font-size:12px; color:var(--sage); font-weight:600;}
+
+/* ===== Try-on ===== */
+.tryon-stage{
+  background:var(--plum); border-radius:var(--radius); overflow:hidden; position:relative;
+  aspect-ratio:3/4; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow);
+}
+.tryon-stage canvas{width:100%; height:100%; touch-action:none; display:block;}
+.tryon-placeholder{color:var(--rosebronze-soft); text-align:center; padding:20px; font-size:13px;}
+.tryon-controls{display:flex; flex-direction:column; gap:10px; margin-top:14px;}
+.slider-row{display:flex; align-items:center; gap:10px; background:#fff; border-radius:12px; padding:10px 14px; box-shadow:var(--shadow-sm);}
+.slider-row label{font-size:12px; font-weight:700; color:var(--plum-soft); width:64px;}
+.slider-row input[type=range]{flex:1;}
+.tryon-actions{display:flex; gap:10px; margin-top:12px;}
+.note-box{background:var(--ivory-soft); border-left:3px solid var(--rosebronze); border-radius:8px; padding:10px 12px; font-size:12px; color:var(--plum-soft); margin-top:10px; line-height:1.4;}
+
+.polaroid{background:#fff; border-radius:14px; padding:10px 10px 16px; box-shadow:var(--shadow); text-align:center;}
+.polaroid img{width:100%; border-radius:6px; display:block;}
+.polaroid .cap{font-family:var(--font-display); font-size:14px; color:var(--plum-soft); margin-top:8px;}
+
+/* ===== Cart ===== */
+.cart-item{display:flex; gap:12px; padding:12px; align-items:center;}
+.cart-item img{width:56px;height:70px; object-fit:cover; border-radius:8px; background:var(--ivory-soft);}
+.cart-item .ci-info{flex:1;}
+.cart-item .ci-name{font-family:var(--font-display); font-weight:600; font-size:15px; color:var(--plum);}
+.qty-ctrl{display:flex; align-items:center; gap:8px;}
+.qty-ctrl button{width:26px;height:26px;border-radius:50%; border:1px solid var(--rosebronze-soft); background:#fff; color:var(--plum); font-weight:700;}
+.cart-total-row{display:flex; justify-content:space-between; align-items:center; padding:16px; background:var(--plum); border-radius:var(--radius); color:var(--ivory); margin-top:14px;}
+.cart-total-row .amt{font-family:var(--font-mono); font-size:22px; color:var(--rosebronze-soft);}
+
+/* ===== Modal ===== */
+.modal-overlay{position:fixed; inset:0; background:rgba(36,26,34,.55); z-index:80; display:flex; align-items:flex-end; justify-content:center;}
+.modal-sheet{background:var(--ivory); width:100%; max-width:520px; border-radius:22px 22px 0 0; max-height:90vh; overflow-y:auto; padding:20px 20px calc(20px + env(safe-area-inset-bottom)); animation:slideup .25s ease;}
+@keyframes slideup{from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+.modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+.modal-head h3{font-size:20px;}
+.close-x{background:var(--ivory-soft); border:none; border-radius:50%; width:32px;height:32px; font-size:16px; color:var(--plum);}
+
+/* confirm modal (custom, iOS-safe instead of window.confirm) */
+.confirm-box{background:#fff; border-radius:18px; padding:22px; max-width:340px; margin:auto; text-align:center;}
+.confirm-box p{font-size:14px; color:var(--ink); margin:10px 0 18px;}
+.confirm-actions{display:flex; gap:10px;}
+
+/* ===== Admin ===== */
+.tabs-sub{display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:14px;}
+.tab-chip{flex-shrink:0; padding:8px 14px; border-radius:20px; border:1.5px solid var(--ivory-soft); background:#fff; font-size:12.5px; font-weight:700; color:var(--plum-soft);}
+.tab-chip.active{background:var(--plum); color:var(--rosebronze-soft); border-color:var(--plum);}
+.chk-row{display:flex; flex-wrap:wrap; gap:8px;}
+.chk-pill{border:1.5px solid var(--ivory-soft); border-radius:16px; padding:6px 12px; font-size:12px; font-weight:600; color:var(--plum-soft); background:#fff;}
+.chk-pill.on{background:var(--sage); border-color:var(--sage); color:#fff;}
+.admin-list-item{display:flex; gap:10px; align-items:center; padding:10px; border-bottom:1px solid var(--ivory-soft);}
+.admin-list-item img{width:44px;height:56px; object-fit:cover; border-radius:6px; background:var(--ivory-soft);}
+.admin-list-item .aname{font-weight:600; font-size:13.5px;}
+.admin-list-item .actions{margin-left:auto; display:flex; gap:6px;}
+.icobtn{background:var(--ivory-soft); border:none; border-radius:8px; width:30px;height:30px; font-size:13px;}
+
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
+.stat-box{background:#fff; border-radius:14px; padding:14px; box-shadow:var(--shadow-sm);}
+.stat-box .val{font-family:var(--font-mono); font-size:20px; color:var(--plum); font-weight:700;}
+.stat-box .lbl{font-size:11px; color:var(--plum-soft); font-weight:600;}
+
+.ticket-row{background:#fff; border-radius:12px; padding:12px 14px; margin-bottom:8px; box-shadow:var(--shadow-sm);}
+.ticket-row .tr-top{display:flex; justify-content:space-between; align-items:center;}
+.ticket-row .tr-num{font-family:var(--font-mono); font-weight:700; color:var(--plum);}
+.ticket-row .tr-meta{font-size:11.5px; color:var(--plum-soft); margin-top:4px;}
+
+.toast{position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--plum); color:var(--ivory); padding:10px 18px; border-radius:20px; font-size:13px; z-index:200; box-shadow:var(--shadow); font-weight:600;}
+
+.wa-fab{position:fixed; right:16px; bottom:96px; z-index:40; background:#25D366; color:#fff; border:none; border-radius:50%; width:52px;height:52px; box-shadow:var(--shadow); font-size:22px; display:flex; align-items:center; justify-content:center;}
+
+@media (max-width:360px){ .garment-grid{gap:8px;} }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN (solo Admin de la tienda) ============ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-head">
+      <div class="brand-mark">OL</div>
+      <h1>OutfitLens</h1>
+      <div class="slogan">Mírate, combínate y compra con seguridad.</div>
+    </div>
+    <div class="login-body">
+      <p class="lead">Acceso de administrador de la tienda</p>
+      <div class="field">
+        <label>Correo (Firebase)</label>
+        <input id="loginUser" type="email" autocomplete="username" placeholder="admin@tutienda.com">
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <p class="error-msg hidden" id="loginError">Correo o contraseña incorrectos.</p>
+      <button class="btn btn-primary btn-block" id="loginBtn" onclick="doLogin()">Ingresar como administrador</button>
+      <div class="skip" onclick="skipLogin()">Continuar como clienta →</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <header class="topbar">
+    <div class="topbar-row">
+      <div class="brand">
+        <div class="brand-mark">OL</div>
+        <div>
+          <h1>OutfitLens</h1>
+          <div class="slogan">Descubre outfits únicos que reflejan tu estilo</div>
+        </div>
+      </div>
+      <button class="icon-btn" id="sessionBtn" onclick="onSessionBtn()">👤</button>
+    </div>
+    <div class="sync-chip"><span class="sync-dot off" id="syncDot"></span><span id="syncText">Guardado local</span></div>
+  </header>
+
+  <main id="mainArea">
+    <!-- views injected by JS -->
+  </main>
+
+  <button class="wa-fab hidden" id="waFab" onclick="waCartMessage()" title="Enviar por WhatsApp">💬</button>
+
+  <nav class="bottomnav">
+    <button class="navbtn active" data-view="catalogo" onclick="goView('catalogo')"><span class="ic">🛍️</span>Catálogo</button>
+    <button class="navbtn" data-view="look" onclick="goView('look')"><span class="ic">📸</span>Mi Look</button>
+    <button class="navbtn" data-view="carrito" onclick="goView('carrito')"><span class="ic">🛒</span>Carrito<span id="cartBadge" class="mono" style="font-size:9px;color:var(--rosebronze);"></span></button>
+    <button class="navbtn" data-view="cuenta" onclick="goView('cuenta')"><span class="ic">👤</span>Cuenta</button>
+  </nav>
+</div>
+
+<div id="modalRoot"></div>
+
+<!-- ============ Firebase (SOLO Authentication — el resto de datos vive en Cloudflare D1, ver /functions/api) ============ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+/* =========================================================================
+   OUTFITLENS — app.js embebido
+   ------------------------------------------------------------------------
+   CONFIGURACIÓN FIREBASE — reemplazar UNA sola vez con la de un proyecto
+   Firebase que YA TENGAS (de otra app tuya). Solo se usa Authentication,
+   por eso no cuenta contra tu límite de proyectos con base de datos.
+   Este bloque queda fijo en el código (no hay pantalla para editarlo desde
+   la app), así ninguna clienta puede tocar la configuración por accidente.
+   Pasos en ese proyecto existente:
+   1) console.firebase.google.com → tu proyecto → Authentication → Sign-in
+      method → habilita "Correo electrónico/contraseña".
+   2) Authentication → Users → Add user → crea el usuario admin de OutfitLens
+      (correo + contraseña) — puede ser distinto del admin de tu otra app.
+   3) Authentication → Settings → Authorized domains → agrega el dominio
+      donde publiques OutfitLens (ej. outfitlens.pages.dev).
+   4) Configuración del proyecto → Apps → Web → copia el config aquí abajo
+      (es el mismo que ya usas en tu otra app, no hay que crear una app nueva).
+   ========================================================================= */
+const DEFAULT_FB_CFG = {
+  apiKey: "REEMPLAZAR_API_KEY",
+  authDomain: "REEMPLAZAR.firebaseapp.com",
+  projectId: "REEMPLAZAR",
+  appId: "1:000000000000:web:0000000000000000000000"
+};
+
+/* -------------------------------------------------------------------------
+   API de datos — Cloudflare Pages Functions + D1 (SQL). Mismo origen, no
+   necesita clave: las funciones en /functions/api/*.js son las únicas que
+   hablan con la base D1 "outfitlens-db" (uuid 3af52279-014b-4a7a-8093-2721fc51c265).
+   ------------------------------------------------------------------------- */
+const API_BASE = '/api';
+let apiReady = false;
+
+let STATE = {
+  garments: [],
+  tickets: [],
+  config: { whatsappTienda: "", nombreTienda: "OutfitLens" },
+  counters: { ticketSeq: 0 },
+  cart: [],           // [{garmentId, nombre, precio, cantidad, imagen}]
+  session: { isAdmin: false, mode: null }, // mode: 'admin' | 'guest'
+  currentView: 'catalogo',
+  look: { garmentId: null, photo: null, x:50, y:35, scale:100, rotate:0, opacity:85, flip:false, savedImg:null }
+};
+
+/* ---------------------------- Persistencia local ---------------------------- */
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem('ol_db');
+    if(raw){
+      const parsed = JSON.parse(raw);
+      STATE.garments = parsed.garments || [];
+      STATE.tickets = parsed.tickets || [];
+      STATE.config = parsed.config || STATE.config;
+      STATE.counters = parsed.counters || STATE.counters;
+    }
+    const cart = localStorage.getItem('ol_cart');
+    if(cart) STATE.cart = JSON.parse(cart);
+  }catch(e){ console.error('loadLocal', e); }
+}
+function saveLocal(){
+  try{
+    localStorage.setItem('ol_db', JSON.stringify({
+      garments: STATE.garments, tickets: STATE.tickets,
+      config: STATE.config, counters: STATE.counters
+    }));
+  }catch(e){ console.error('saveLocal (¿localStorage lleno?)', e); }
+}
+function saveCart(){ localStorage.setItem('ol_cart', JSON.stringify(STATE.cart)); }
+
+/* ---------------------------- Firebase Auth (solo login) ---------------------------- */
+let fbAuth = null;
+function initAuth(){
+  if(DEFAULT_FB_CFG.apiKey.startsWith('REEMPLAZAR')){
+    console.warn('Falta configurar DEFAULT_FB_CFG con tu proyecto Firebase existente.');
+    return;
+  }
+  try{
+    firebase.initializeApp(DEFAULT_FB_CFG);
+    fbAuth = firebase.auth();
+  }catch(e){ console.error('Firebase Auth init error', e); }
+}
+function setSyncStatus(ok, text){
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  if(dot) dot.classList.toggle('off', !ok);
+  if(txt) txt.textContent = (ok?'🟢 ':'') + text;
+}
+
+/* ---------------------------- API de datos (Cloudflare D1) ---------------------------- */
+async function apiFetch(path, options){
+  const res = await fetch(API_BASE + path, {
+    headers: {'Content-Type':'application/json'},
+    ...options
+  });
+  if(!res.ok) throw new Error('API '+path+' → '+res.status);
+  return res.json();
+}
+async function apiLoadAll(){
+  try{
+    const [garments, tickets, config] = await Promise.all([
+      apiFetch('/garments'), apiFetch('/tickets'), apiFetch('/config')
+    ]);
+    STATE.garments = garments;
+    STATE.tickets = tickets;
+    STATE.config = {...STATE.config, ...config};
+    apiReady = true;
+    saveLocal();
+    setSyncStatus(true, 'Conectado (Cloudflare D1)');
+    if(['catalogo','look','cuenta'].includes(STATE.currentView)) render();
+  }catch(e){
+    console.error('No se pudo conectar a la API D1, usando datos locales', e);
+    apiReady = false;
+    setSyncStatus(false, 'Modo local (sin conexión a la base)');
+  }
+}
+async function fbSaveGarment(g){
+  saveLocal();
+  try{ await apiFetch('/garments', {method:'POST', body:JSON.stringify(g)}); }
+  catch(e){ console.error(e); toast('Se guardó localmente; no se pudo sincronizar con D1'); }
+}
+async function fbDeleteGarment(id){
+  saveLocal();
+  try{ await apiFetch('/garments/'+id, {method:'DELETE'}); }
+  catch(e){ console.error(e); }
+}
+async function fbSaveConfig(){
+  saveLocal();
+  try{ await apiFetch('/config', {method:'POST', body:JSON.stringify(STATE.config)}); }
+  catch(e){ console.error(e); }
+}
+/* Crea el ticket en el servidor: el folio secuencial lo asigna D1 de forma
+   atómica (evita que dos ventas simultáneas usen el mismo número). */
+async function apiCreateTicket(payload){
+  try{
+    const ticket = await apiFetch('/tickets', {method:'POST', body:JSON.stringify(payload)});
+    STATE.tickets.unshift(ticket);
+    saveLocal();
+    return ticket;
+  }catch(e){
+    console.error('Fallo al crear ticket en D1, se genera folio local temporal', e);
+    STATE.counters.ticketSeq = (STATE.counters.ticketSeq||0)+1;
+    const numero = STATE.counters.ticketSeq;
+    const ticket = {id:'tk_'+Date.now(), numero, folio:'OL-'+String(numero).padStart(6,'0')+'-LOCAL', ...payload};
+    STATE.tickets.unshift(ticket);
+    saveLocal();
+    return ticket;
+  }
+}
+
+/* ---------------------------- Login (Firebase Auth) ---------------------------- */
+async function doLogin(){
+  const email = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const btn = document.getElementById('loginBtn');
+  document.getElementById('loginError').classList.add('hidden');
+  if(!fbAuth){ document.getElementById('loginError').textContent = 'Firebase Auth no está configurado todavía (ver DEFAULT_FB_CFG en el código).'; document.getElementById('loginError').classList.remove('hidden'); return; }
+  btn.disabled = true; btn.textContent = 'Ingresando…';
+  try{
+    await fbAuth.signInWithEmailAndPassword(email, pass);
+    STATE.session = {isAdmin:true, mode:'admin', email};
+    localStorage.setItem('ol_auth', JSON.stringify(STATE.session));
+    enterApp();
+  }catch(e){
+    document.getElementById('loginError').textContent = 'Correo o contraseña incorrectos.';
+    document.getElementById('loginError').classList.remove('hidden');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Ingresar como administrador';
+  }
+}
+function skipLogin(){
+  STATE.session = {isAdmin:false, mode:'guest'};
+  localStorage.setItem('ol_auth', JSON.stringify(STATE.session));
+  enterApp();
+}
+function logout(){
+  confirmModal('Cerrar sesión', '¿Deseas salir del modo administrador?', ()=>{
+    if(fbAuth) fbAuth.signOut().catch(()=>{});
+    STATE.session = {isAdmin:false, mode:'guest'};
+    localStorage.setItem('ol_auth', JSON.stringify(STATE.session));
+    closeModal();
+    goView('cuenta');
+    toast('Sesión cerrada');
+  });
+}
+function onSessionBtn(){ goView('cuenta'); }
+function enterApp(){
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  goView(STATE.currentView || 'catalogo');
+}
+
+/* ---------------------------- Navegación ---------------------------- */
+function goView(v){
+  STATE.currentView = v;
+  document.querySelectorAll('.navbtn').forEach(b=> b.classList.toggle('active', b.dataset.view===v));
+  document.getElementById('waFab').classList.toggle('hidden', v!=='carrito' || STATE.cart.length===0);
+  render();
+  document.getElementById('mainArea').scrollTop = 0;
+}
+function render(){
+  const main = document.getElementById('mainArea');
+  updateCartBadge();
+  if(STATE.currentView==='catalogo') return main.innerHTML = viewCatalogo();
+  if(STATE.currentView==='look') return renderLookView();
+  if(STATE.currentView==='carrito') return main.innerHTML = viewCarrito();
+  if(STATE.currentView==='cuenta') return main.innerHTML = viewCuenta();
+}
+function updateCartBadge(){
+  const n = STATE.cart.reduce((s,i)=>s+i.cantidad,0);
+  document.getElementById('cartBadge').textContent = n>0 ? ' '+n : '';
+}
+function toast(msg){
+  const t = document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2200);
+}
+function money(n){ return '$' + Number(n||0).toFixed(2); }
+function todayISO(){ return new Date().toISOString(); }
+function fmtDate(iso){ const d=new Date(iso); return d.toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'}); }
+
+/* =========================================================================
+   VISTA: CATÁLOGO
+   ========================================================================= */
+const CATEGORIAS_PRINCIPALES = ['Ropa','Collares','Aretes','Tobilleras'];
+let catalogoFiltro = 'Ropa';
+function viewCatalogo(){
+  const disponibles = STATE.garments.filter(g=>g.activo!==false && (g.estado||'disponible')==='disponible');
+  const enEstaCategoria = disponibles.filter(g=>(g.categoriaPrincipal||'Ropa')===catalogoFiltro);
+  let html = `
+    <div class="hero-cta">
+      <div class="eyebrow">Asesoría de imagen digital</div>
+      <h2>Prueba tu look</h2>
+      <p>Sube una foto y mira cómo te queda cada prenda en segundos. Combina el outfit completo y agrégalo al carrito con un toque.</p>
+      <button class="btn btn-primary" onclick="startTryOnGeneral()">📸 Prueba tu look</button>
+    </div>
+    <div class="section-title"><h2>Catálogo</h2><span class="hint">${enEstaCategoria.length} disponible${enEstaCategoria.length===1?'':'s'}</span></div>
+    <div class="tabs-sub">
+      ${CATEGORIAS_PRINCIPALES.map(c=>`<div class="tab-chip ${catalogoFiltro===c?'active':''}" onclick="setCatalogoFiltro('${c}')">${c}</div>`).join('')}
+    </div>
+    <div class="note-box" style="margin-bottom:12px;">Marca el ✓ de las prendas que te interesan: se reservan y pasan directo a tu carrito. Si desistes de la compra, vuelven a aparecer aquí.</div>`;
+
+  if(enEstaCategoria.length===0){
+    html += `<div class="empty-state"><div class="ic">🧺</div>Aún no hay prendas disponibles en "${catalogoFiltro}".<br>${STATE.session.isAdmin? 'Ve a Cuenta → Subir prenda.' : 'Vuelve pronto.'}</div>`;
+  }else{
+    html += `<div class="garment-grid">` + enEstaCategoria.map(garmentCard).join('') + `</div>`;
+  }
+  return html;
+}
+function setCatalogoFiltro(c){ catalogoFiltro=c; render(); }
+function garmentCard(g){
+  const enCarrito = STATE.cart.some(i=>i.garmentId===g.id);
+  return `
+  <div class="card garment-card">
+    <div class="img-wrap" onclick="openGarmentDetail('${g.id}')">
+      ${g.imagen ? `<img src="${g.imagen}" loading="lazy">` : `<div class="no-img">Sin foto</div>`}
+      <div class="check-box ${enCarrito?'on':''}" onclick="event.stopPropagation(); toggleGarmentCheck('${g.id}')">${enCarrito?'✓':''}</div>
+    </div>
+    <div class="info" onclick="openGarmentDetail('${g.id}')">
+      <div class="name">${esc(g.nombre)}</div>
+      <div class="meta-row">
+        <span class="swing-tag">${categoriaLabel(g.categoria, g.categoriaPrincipal)}</span>
+        <span class="swing-tag price">${money(g.precio)}</span>
+      </div>
+    </div>
+  </div>`;
+}
+function categoriaLabel(c, principal){
+  const sub = {pantalon:'Pantalón',blusa:'Blusa',chaqueta:'Chaqueta',vestido:'Vestido',calzado:'Calzado',falda:'Falda',camisa:'Camisa',collares:'Collares',aretes:'Aretes',tobilleras:'Tobilleras'}[c];
+  return sub || principal || (c? c.charAt(0).toUpperCase()+c.slice(1) : 'Prenda');
+}
+function generoLabel(g){ return {dama:'Dama',caballero:'Caballero',nino:'Niño/a',unisex:'Unisex'}[g]||g||''; }
+
+/* Marcar/desmarcar el check de una prenda en el catálogo: reserva en D1
+   (estado disponible -> en_carrito) y la mueve al carrito. Si alguien más
+   ya la reservó primero, avisa y refresca la vista. */
+async function toggleGarmentCheck(id){
+  const enCarrito = STATE.cart.some(i=>i.garmentId===id);
+  if(enCarrito){ await releaseGarment(id); }
+  else{ await reserveGarment(id); }
+}
+async function reserveGarment(id){
+  const g = STATE.garments.find(x=>x.id===id);
+  if(!g) return;
+  try{
+    await apiFetch('/garments/'+id, {method:'PATCH', body:JSON.stringify({estado:'en_carrito', esperado:'disponible'})});
+    g.estado='en_carrito';
+    STATE.cart.push({garmentId:id, nombre:g.nombre, precio:g.precio, cantidad:1, imagen:g.imagen, categoria:g.categoria, categoriaPrincipal:g.categoriaPrincipal});
+    saveCart(); saveLocal(); updateCartBadge();
+    toast('Añadido a tu carrito 🛍️');
+    render();
+  }catch(e){
+    if(e.message && e.message.includes('409')){
+      toast('Uy, esa prenda ya la reservó otra clienta');
+      await apiLoadAll();
+    }else{
+      // Sin conexión a la API: reserva solo local (modo offline)
+      g.estado='en_carrito';
+      STATE.cart.push({garmentId:id, nombre:g.nombre, precio:g.precio, cantidad:1, imagen:g.imagen, categoria:g.categoria, categoriaPrincipal:g.categoriaPrincipal});
+      saveCart(); saveLocal(); updateCartBadge();
+    }
+    render();
+  }
+}
+async function releaseGarment(id){
+  const g = STATE.garments.find(x=>x.id===id);
+  STATE.cart = STATE.cart.filter(i=>i.garmentId!==id);
+  saveCart(); updateCartBadge();
+  if(g){ g.estado='disponible'; saveLocal(); }
+  try{ await apiFetch('/garments/'+id, {method:'PATCH', body:JSON.stringify({estado:'disponible'})}); }
+  catch(e){ console.error(e); }
+  render();
+}
+
+
+function openGarmentDetail(id){
+  const g = STATE.garments.find(x=>x.id===id);
+  if(!g) return;
+  const combinaciones = STATE.garments.filter(o=>o.id!==g.id && o.activo!==false && (o.estado||'disponible')==='disponible' && (g.combinaCon||[]).includes(o.categoria));
+  const enCarrito = STATE.cart.some(i=>i.garmentId===g.id);
+  openModal(`
+    <div class="modal-head"><h3>${esc(g.nombre)}</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="img-wrap" style="border-radius:14px; margin-bottom:14px;">${g.imagen?`<img src="${g.imagen}" style="width:100%;border-radius:14px;">`:''}</div>
+    <div class="meta-row" style="margin-bottom:10px;">
+      <span class="swing-tag">${categoriaLabel(g.categoria, g.categoriaPrincipal)}</span>
+      <span class="swing-tag">${generoLabel(g.genero)}</span>
+      <span class="swing-tag price">${money(g.precio)}</span>
+    </div>
+    ${g.tallas&&g.tallas.length? `<p style="font-size:12.5px;color:var(--plum-soft);"><b>Tallas:</b> ${g.tallas.join(', ')}</p>`:''}
+    <button class="btn btn-primary btn-block" onclick="closeModal(); startTryOn('${g.id}')">📸 Probarme esta prenda</button>
+    <button class="btn ${enCarrito?'btn-danger':'btn-ghost'} btn-block" style="margin-top:8px;" onclick="toggleGarmentCheck('${g.id}'); closeModal();">${enCarrito?'✕ Quitar del carrito':'🛒 Agregar al carrito'}</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="waAskAboutGarment('${g.id}')">💬 Preguntar por WhatsApp</button>
+    ${combinaciones.length? `
+      <div class="section-title"><h2 style="font-size:16px;">Combina con</h2></div>
+      <div class="garment-grid">${combinaciones.slice(0,4).map(garmentCard).join('')}</div>
+    `:''}
+  `);
+}
+
+/* =========================================================================
+   VISTA: MI LOOK (prueba virtual — overlay hoy, lista para IA real después)
+   ========================================================================= */
+function startTryOnGeneral(){
+  const disponibles = STATE.garments.filter(g=>g.activo!==false && (g.estado||'disponible')==='disponible');
+  if(disponibles.length===0){ toast('Primero necesitas publicar alguna prenda'); return; }
+  STATE.look.garmentId = disponibles[0].id;
+  goView('look');
+}
+function startTryOn(garmentId){
+  STATE.look.garmentId = garmentId;
+  STATE.look.x=50; STATE.look.y=35; STATE.look.scale=100; STATE.look.rotate=0; STATE.look.opacity=85; STATE.look.flip=false;
+  goView('look');
+}
+let tryonCtx = null, tryonImg = null, tryonGarmentImg = null;
+
+function renderLookView(){
+  const main = document.getElementById('mainArea');
+  const disponibles = STATE.garments.filter(x=>x.activo!==false && (x.estado||'disponible')==='disponible');
+  const g = STATE.garments.find(x=>x.id===STATE.look.garmentId && (x.estado||'disponible')==='disponible') || disponibles[0];
+  if(!g){
+    main.innerHTML = `<div class="empty-state"><div class="ic">📸</div>Publica una prenda disponible primero para poder probarla.</div>`;
+    return;
+  }
+  const combinaciones = STATE.garments.filter(o=>o.id!==g.id && o.activo!==false && (o.estado||'disponible')==='disponible' && (g.combinaCon||[]).includes(o.categoria));
+  main.innerHTML = `
+    <div class="section-title"><h2>Mi Look</h2><span class="hint">${esc(g.nombre)}</span></div>
+    <select class="field" id="lookGarmentSelect" onchange="changeLookGarment(this.value)" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--ivory-soft);margin-bottom:12px;background:#fff;">
+      ${disponibles.map(x=>`<option value="${x.id}" ${x.id===g.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}
+    </select>
+
+    <div class="tryon-stage" id="tryonStage">
+      ${STATE.look.photo ? `<canvas id="tryonCanvas"></canvas>` : `
+        <div class="tryon-placeholder">
+          <div style="font-size:32px;">🤳</div>
+          Sube o toma una foto de cuerpo entero (o selfie) con buena luz y fondo simple.
+        </div>`}
+    </div>
+
+    ${!STATE.look.photo ? `
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="document.getElementById('photoCapture').click()">🤳 Tomar selfie</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('photoUpload').click()">🖼️ Subir foto</button>
+      </div>
+      <input type="file" id="photoCapture" accept="image/*" capture="user" class="hidden" onchange="onPhotoChosen(event)">
+      <input type="file" id="photoUpload" accept="image/*" class="hidden" onchange="onPhotoChosen(event)">
+    ` : `
+      <div class="tryon-controls">
+        <div class="slider-row"><label>Tamaño</label><input type="range" min="30" max="220" value="${STATE.look.scale}" oninput="updateLook('scale', this.value)"></div>
+        <div class="slider-row"><label>Posición X</label><input type="range" min="0" max="100" value="${STATE.look.x}" oninput="updateLook('x', this.value)"></div>
+        <div class="slider-row"><label>Posición Y</label><input type="range" min="0" max="100" value="${STATE.look.y}" oninput="updateLook('y', this.value)"></div>
+        <div class="slider-row"><label>Rotación</label><input type="range" min="-45" max="45" value="${STATE.look.rotate}" oninput="updateLook('rotate', this.value)"></div>
+        <div class="slider-row"><label>Opacidad</label><input type="range" min="30" max="100" value="${STATE.look.opacity}" oninput="updateLook('opacity', this.value)"></div>
+      </div>
+      <div class="tryon-actions">
+        <button class="btn btn-ghost" style="flex:1;" onclick="flipGarment()">↔️ Voltear</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="retakePhoto()">🔄 Cambiar foto</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="saveLookSnapshot()">✅ Guardar look</button>
+      </div>
+      <div class="note-box">Vista previa referencial: ajusta la prenda sobre tu foto con los controles. Aún no usa inteligencia artificial fotorrealista — esa opción se activará más adelante conectando un servicio externo de prueba virtual.</div>
+    `}
+
+    ${STATE.look.savedImg ? `
+      <div class="section-title"><h2 style="font-size:16px;">Tu look guardado</h2></div>
+      <div class="polaroid"><img src="${STATE.look.savedImg}"><div class="cap">${esc(g.nombre)}</div></div>
+    `:''}
+
+    ${combinaciones.length? `
+      <div class="section-title"><h2>Combina tu outfit</h2><span class="hint">toca para agregar</span></div>
+      <div class="garment-grid">${combinaciones.map(o=>outfitPickCard(o)).join('')}</div>
+      <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="addOutfitToCart('${g.id}')">🛍️ Agregar outfit completo al carrito</button>
+    ` : `
+      <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="reserveGarment('${g.id}')">🛒 Agregar esta prenda al carrito</button>
+    `}
+  `;
+  if(STATE.look.photo){ setTimeout(()=>drawTryOnCanvas(g), 30); }
+}
+function changeLookGarment(id){ STATE.look.garmentId=id; render(); }
+
+const outfitPicks = new Set();
+function outfitPickCard(o){
+  const on = outfitPicks.has(o.id);
+  return `
+  <div class="card garment-card" style="${on?'outline:2px solid var(--sage);':''}" onclick="toggleOutfitPick('${o.id}')">
+    <div class="img-wrap">${o.imagen?`<img src="${o.imagen}">`:`<div class="no-img">Sin foto</div>`}</div>
+    <div class="info">
+      <div class="name">${esc(o.nombre)}</div>
+      <div class="meta-row"><span class="swing-tag price">${money(o.precio)}</span>${on?'<span style="color:var(--sage);font-weight:700;">✓</span>':''}</div>
+    </div>
+  </div>`;
+}
+function toggleOutfitPick(id){
+  outfitPicks.has(id) ? outfitPicks.delete(id) : outfitPicks.add(id);
+  render();
+}
+async function addOutfitToCart(mainId){
+  await reserveGarment(mainId);
+  for(const id of outfitPicks){ await reserveGarment(id); }
+  outfitPicks.clear();
+  toast('Outfit agregado al carrito 🛍️');
+  goView('carrito');
+}
+
+function onPhotoChosen(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  compressImageFile(file, 900, 0.85).then(dataUrl=>{
+    STATE.look.photo = dataUrl;
+    render();
+  });
+}
+function retakePhoto(){ STATE.look.photo=null; STATE.look.savedImg=null; render(); }
+function updateLook(key, val){ STATE.look[key] = Number(val); drawTryOnCanvas(STATE.garments.find(x=>x.id===STATE.look.garmentId)); }
+function flipGarment(){ STATE.look.flip = !STATE.look.flip; drawTryOnCanvas(STATE.garments.find(x=>x.id===STATE.look.garmentId)); }
+
+function drawTryOnCanvas(g){
+  const canvas = document.getElementById('tryonCanvas');
+  if(!canvas || !STATE.look.photo) return;
+  const ctx = canvas.getContext('2d');
+  const baseImg = new Image();
+  baseImg.onload = ()=>{
+    canvas.width = baseImg.width; canvas.height = baseImg.height;
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.drawImage(baseImg,0,0);
+    if(g && g.imagen){
+      const gi = new Image();
+      gi.onload = ()=>{
+        const scale = STATE.look.scale/100;
+        const gw = canvas.width * 0.5 * scale;
+        const gh = gw * (gi.height/gi.width);
+        const cx = canvas.width * (STATE.look.x/100);
+        const cy = canvas.height * (STATE.look.y/100);
+        ctx.save();
+        ctx.globalAlpha = STATE.look.opacity/100;
+        ctx.translate(cx, cy);
+        ctx.rotate(STATE.look.rotate * Math.PI/180);
+        if(STATE.look.flip) ctx.scale(-1,1);
+        ctx.drawImage(gi, -gw/2, -gh/2, gw, gh);
+        ctx.restore();
+      };
+      gi.src = g.imagen;
+    }
+  };
+  baseImg.src = STATE.look.photo;
+}
+function saveLookSnapshot(){
+  const canvas = document.getElementById('tryonCanvas');
+  if(!canvas) return;
+  STATE.look.savedImg = canvas.toDataURL('image/jpeg',0.9);
+  toast('Look guardado ✨');
+  render();
+}
+
+/* Placeholder para integración futura de IA de prueba virtual real */
+async function generarTryOnIA(fotoBase64, prendaBase64){
+  // TODO: integrar aquí un servicio de IA de "virtual try-on" (API de terceros,
+  // con su propia clave y costo por imagen). Debe devolver un dataURL con el
+  // resultado fotorrealista. Mientras tanto, se usa el overlay manual (canvas).
+  return null;
+}
+
+/* =========================================================================
+   CARRITO (piezas únicas de garage sale: cantidad siempre 1 por prenda)
+   ========================================================================= */
+function removeFromCart(garmentId){
+  releaseGarment(garmentId);
+}
+function cartTotal(){ return STATE.cart.reduce((s,i)=>s+i.precio*i.cantidad,0); }
+
+function viewCarrito(){
+  if(STATE.cart.length===0){
+    return `<div class="section-title"><h2>Carrito</h2></div><div class="empty-state"><div class="ic">🛒</div>Tu carrito está vacío.<br>Ve al catálogo y marca el ✓ de lo que te guste.</div>`;
+  }
+  return `
+    <div class="section-title"><h2>Carrito</h2><span class="hint">${STATE.cart.length} prenda(s) reservada(s)</span></div>
+    <div class="card">
+      ${STATE.cart.map(i=>`
+        <div class="cart-item">
+          ${i.imagen?`<img src="${i.imagen}">`:`<div style="width:56px;height:70px;background:var(--ivory-soft);border-radius:8px;"></div>`}
+          <div class="ci-info">
+            <div class="ci-name">${esc(i.nombre)}</div>
+            <div class="swing-tag price" style="margin-top:4px;">${money(i.precio)}</div>
+          </div>
+          <button class="icobtn" onclick="removeFromCart('${i.garmentId}')" title="Quitar">✕</button>
+        </div>`).join('<div style="height:1px;background:var(--ivory-soft);"></div>')}
+    </div>
+    <div class="cart-total-row"><span>Total</span><span class="amt mono">${money(cartTotal())}</span></div>
+    <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="openCheckoutModal()">🧾 Registrar venta</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="waCartMessage()">💬 Enviar pedido por WhatsApp</button>
+    <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="abandonCart()">❌ La clienta desistió (cancelar todo)</button>
+  `;
+}
+/* La clienta se arrepiente: todas las prendas reservadas vuelven a estar
+   disponibles y reaparecen en su categoría del catálogo. */
+function abandonCart(){
+  confirmModal('Cancelar compra', '¿Seguro que la clienta ya no quiere estas prendas? Volverán a aparecer disponibles en el catálogo.', async ()=>{
+    const ids = STATE.cart.map(i=>i.garmentId);
+    closeModal();
+    for(const id of ids){ await releaseGarment(id); }
+    toast('Carrito cancelado, las prendas volvieron al catálogo');
+    goView('catalogo');
+  });
+}
+
+function openCheckoutModal(){
+  openModal(`
+    <div class="modal-head"><h3>Registrar venta — datos de la clienta</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Nombre completo</label><input id="ckNombre" placeholder="Nombre y apellido"></div>
+    <div class="field"><label>Teléfono (WhatsApp)</label><input id="ckTelefono" placeholder="09XXXXXXXX"></div>
+    <div class="field"><label>Género</label>
+      <select id="ckGenero"><option value="dama">Dama</option><option value="caballero">Caballero</option><option value="nino">Niño/a</option><option value="unisex">Unisex</option></select>
+    </div>
+    <div class="field"><label>Tipo de cliente</label>
+      <select id="ckTipo"><option value="nino">Niño</option><option value="joven">Joven</option><option value="adulto" selected>Adulto</option><option value="adulto_mayor">Adulto mayor</option></select>
+    </div>
+    <div class="cart-total-row"><span>Total a pagar</span><span class="amt mono">${money(cartTotal())}</span></div>
+    <button class="btn btn-primary btn-block" id="ckConfirmBtn" style="margin-top:14px;" onclick="confirmPurchase()">✅ Confirmar y generar ticket</button>
+  `);
+}
+async function confirmPurchase(){
+  const nombre = document.getElementById('ckNombre').value.trim();
+  const telefono = document.getElementById('ckTelefono').value.trim();
+  const genero = document.getElementById('ckGenero').value;
+  const tipo = document.getElementById('ckTipo').value;
+  if(!nombre){ toast('Ingresa el nombre de la clienta'); return; }
+  const btn = document.getElementById('ckConfirmBtn');
+  btn.disabled = true; btn.textContent = 'Generando ticket…';
+  const ticket = await apiCreateTicket({
+    cliente: {nombre, telefono, genero, tipo},
+    items: STATE.cart.map(i=>({...i})),
+    total: cartTotal()
+  });
+  STATE.cart = [];
+  saveCart();
+  closeModal();
+  showTicketResult(ticket);
+}
+function showTicketResult(ticket){
+  openModal(`
+    <div class="modal-head"><h3>¡Compra confirmada!</h3><button class="close-x" onclick="closeModal(); goView('catalogo');">✕</button></div>
+    <div class="card" style="padding:18px; text-align:center;">
+      <span class="swing-tag ticket mono">${ticket.folio}</span>
+      <p style="margin:14px 0 4px; font-size:13px; color:var(--plum-soft);">${fmtDate(ticket.fecha)} · ${esc(ticket.cliente.nombre)}</p>
+      <h2 class="mono" style="font-size:26px; margin:6px 0 14px;">${money(ticket.total)}</h2>
+      <div style="text-align:left; font-size:13px; color:var(--ink);">
+        ${ticket.items.map(i=>`<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${i.cantidad}× ${esc(i.nombre)}</span><span class="mono">${money(i.precio*i.cantidad)}</span></div>`).join('')}
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="downloadTicketPDF('${ticket.id}')">⬇️ Descargar ticket PDF</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="waSendTicket('${ticket.id}')">💬 Enviar ticket por WhatsApp</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="closeModal(); goView('catalogo');">Seguir viendo el catálogo</button>
+  `);
+}
+function downloadTicketPDF(ticketId){
+  const t = STATE.tickets.find(x=>x.id===ticketId);
+  if(!t) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:[80, 150]});
+  let y = 10;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text(STATE.config.nombreTienda || 'OutfitLens', 40, y, {align:'center'}); y+=6;
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text('Mirate, combinate y compra con seguridad', 40, y, {align:'center'}); y+=6;
+  doc.setLineWidth(0.2); doc.line(6,y,74,y); y+=6;
+  doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text('Ticket: '+t.folio, 6, y); y+=6;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8);
+  doc.text('Fecha: '+fmtDate(t.fecha), 6, y); y+=5;
+  doc.text('Cliente: '+t.cliente.nombre, 6, y); y+=5;
+  if(t.cliente.telefono){ doc.text('Telefono: '+t.cliente.telefono, 6, y); y+=5; }
+  doc.text('Genero: '+generoLabel(t.cliente.genero)+'  Tipo: '+t.cliente.tipo, 6, y); y+=6;
+  doc.line(6,y,74,y); y+=6;
+  t.items.forEach(i=>{
+    doc.text(`${i.cantidad}x ${i.nombre}`.substring(0,34), 6, y);
+    doc.text('$'+(i.precio*i.cantidad).toFixed(2), 74, y, {align:'right'});
+    y+=5;
+  });
+  doc.line(6,y,74,y); y+=6;
+  doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('TOTAL', 6, y); doc.text('$'+t.total.toFixed(2), 74, y, {align:'right'}); y+=8;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7);
+  doc.text('Gracias por tu compra ✨', 40, y, {align:'center'});
+  doc.save(t.folio+'.pdf');
+}
+
+/* =========================================================================
+   WHATSAPP (enlaces click-to-chat — no envía archivos automáticamente;
+   la clienta adjunta su foto manualmente dentro de WhatsApp)
+   ========================================================================= */
+function waNumber(){
+  const n = (STATE.config.whatsappTienda||'').replace(/\D/g,'');
+  return n;
+}
+function waOpen(text){
+  const n = waNumber();
+  if(!n){ toast('El administrador aún no configuró el WhatsApp de la tienda'); return; }
+  window.open(`https://wa.me/${n}?text=${encodeURIComponent(text)}`, '_blank');
+}
+function waAskAboutGarment(id){
+  const g = STATE.garments.find(x=>x.id===id);
+  if(!g) return;
+  waOpen(`Hola, me interesa "${g.nombre}" (${money(g.precio)}). ¿Está disponible? Te comparto mi foto para probarme el look.`);
+}
+function waCartMessage(){
+  if(STATE.cart.length===0){ toast('Tu carrito está vacío'); return; }
+  let msg = `Hola, quiero confirmar este outfit:\n`;
+  STATE.cart.forEach(i=> msg += `• ${i.cantidad}x ${i.nombre} - ${money(i.precio*i.cantidad)}\n`);
+  msg += `Total: ${money(cartTotal())}`;
+  waOpen(msg);
+}
+function waSendTicket(ticketId){
+  const t = STATE.tickets.find(x=>x.id===ticketId);
+  if(!t) return;
+  let msg = `Ticket ${t.folio}\nCliente: ${t.cliente.nombre}\nFecha: ${fmtDate(t.fecha)}\n`;
+  t.items.forEach(i=> msg += `• ${i.cantidad}x ${i.nombre} - ${money(i.precio*i.cantidad)}\n`);
+  msg += `Total: ${money(t.total)}`;
+  waOpen(msg);
+}
+
+/* =========================================================================
+   CUENTA (login público / panel admin)
+   ========================================================================= */
+function viewCuenta(){
+  if(!STATE.session.isAdmin){
+    return `
+      <div class="section-title"><h2>Cuenta</h2></div>
+      <div class="card" style="padding:20px; text-align:center;">
+        <div style="font-size:34px;">🧑‍💼</div>
+        <p style="font-size:13px; color:var(--plum-soft); margin:10px 0 16px;">Ingresa como administrador para publicar prendas, ver tickets y configurar la tienda.</p>
+        <button class="btn btn-primary btn-block" onclick="showAdminLoginModal()">Ingresar como administrador</button>
+      </div>`;
+  }
+  return `
+    <div class="section-title"><h2>Panel de administrador</h2><button class="btn btn-ghost" style="padding:8px 12px;font-size:12px;" onclick="logout()">Cerrar sesión</button></div>
+    <div class="tabs-sub">
+      <div class="tab-chip ${adminTab==='resumen'?'active':''}" onclick="setAdminTab('resumen')">Resumen</div>
+      <div class="tab-chip ${adminTab==='subir'?'active':''}" onclick="setAdminTab('subir')">Subir prenda</div>
+      <div class="tab-chip ${adminTab==='catalogo'?'active':''}" onclick="setAdminTab('catalogo')">Catálogo</div>
+      <div class="tab-chip ${adminTab==='tickets'?'active':''}" onclick="setAdminTab('tickets')">Tickets</div>
+      <div class="tab-chip ${adminTab==='config'?'active':''}" onclick="setAdminTab('config')">Config.</div>
+      <div class="tab-chip ${adminTab==='respaldo'?'active':''}" onclick="setAdminTab('respaldo')">Respaldo</div>
+    </div>
+    <div id="adminBody">${renderAdminTab()}</div>
+  `;
+}
+function showAdminLoginModal(){
+  openModal(`
+    <div class="modal-head"><h3>Acceso administrador</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Correo (Firebase)</label><input id="mUser" type="email" placeholder="admin@tutienda.com"></div>
+    <div class="field"><label>Contraseña</label><input id="mPass" type="password" placeholder="••••••••"></div>
+    <p class="error-msg hidden" id="mErr">Correo o contraseña incorrectos.</p>
+    <button class="btn btn-primary btn-block" id="mLoginBtn" onclick="modalLogin()">Ingresar</button>
+  `);
+}
+async function modalLogin(){
+  const email=document.getElementById('mUser').value.trim(), pass=document.getElementById('mPass').value;
+  const btn=document.getElementById('mLoginBtn');
+  document.getElementById('mErr').classList.add('hidden');
+  if(!fbAuth){ document.getElementById('mErr').textContent='Firebase Auth no está configurado (ver DEFAULT_FB_CFG).'; document.getElementById('mErr').classList.remove('hidden'); return; }
+  btn.disabled=true; btn.textContent='Ingresando…';
+  try{
+    await fbAuth.signInWithEmailAndPassword(email, pass);
+    STATE.session={isAdmin:true, mode:'admin', email};
+    localStorage.setItem('ol_auth', JSON.stringify(STATE.session));
+    closeModal(); render();
+  }catch(e){
+    document.getElementById('mErr').classList.remove('hidden');
+  }finally{
+    btn.disabled=false; btn.textContent='Ingresar';
+  }
+}
+
+let adminTab = 'resumen';
+function setAdminTab(t){ adminTab=t; document.getElementById('adminBody').innerHTML = renderAdminTab(); document.querySelectorAll('.tab-chip').forEach(c=>c.classList.toggle('active', c.textContent.trim()===tabLabel(t))); }
+function tabLabel(t){ return {resumen:'Resumen',subir:'Subir prenda',catalogo:'Catálogo',tickets:'Tickets',config:'Config.',respaldo:'Respaldo'}[t]; }
+
+function renderAdminTab(){
+  if(adminTab==='resumen') return adminResumen();
+  if(adminTab==='subir') return adminSubirForm();
+  if(adminTab==='catalogo') return adminCatalogoList();
+  if(adminTab==='tickets') return adminTicketsList();
+  if(adminTab==='config') return adminConfig();
+  if(adminTab==='respaldo') return adminRespaldo();
+}
+
+/* ----- Resumen ----- */
+function adminResumen(){
+  const totalVentas = STATE.tickets.reduce((s,t)=>s+t.total,0);
+  const enCarritoGlobal = STATE.garments.filter(g=>(g.estado||'disponible')==='en_carrito').length;
+  const disponiblesGlobal = STATE.garments.filter(g=>g.activo!==false && (g.estado||'disponible')==='disponible').length;
+  const porGenero = {};
+  STATE.tickets.forEach(t=>{ const g=t.cliente.genero||'—'; porGenero[g]=(porGenero[g]||0)+1; });
+  return `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="val">${disponiblesGlobal}</div><div class="lbl">Disponibles ahora</div></div>
+      <div class="stat-box"><div class="val">${STATE.tickets.length}</div><div class="lbl">Tickets emitidos</div></div>
+      <div class="stat-box"><div class="val">${money(totalVentas)}</div><div class="lbl">Ventas totales</div></div>
+      <div class="stat-box"><div class="val">${enCarritoGlobal}</div><div class="lbl">Reservadas en carritos (todas las clientas)</div></div>
+    </div>
+    <div class="card" style="padding:14px;">
+      <h3 style="font-size:14px;margin-bottom:8px;">Ventas por género</h3>
+      ${Object.entries(porGenero).length? Object.entries(porGenero).map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>${generoLabel(k)}</span><span class="mono">${v}</span></div>`).join('') : '<p style="font-size:12px;color:var(--plum-soft);">Aún no hay ventas.</p>'}
+    </div>
+  `;
+}
+
+/* ----- Subir prenda ----- */
+let newGarmentImg = null;
+let newGarmentTallas = new Set();
+let newGarmentCombina = new Set();
+let newGarmentPrincipal = 'Ropa';
+function adminSubirForm(){
+  return `
+    <div class="card" style="padding:16px;">
+      <div class="field">
+        <label>Foto de la prenda</label>
+        <div class="img-wrap" style="border-radius:12px; margin-bottom:8px;" id="newImgPreview">
+          ${newGarmentImg? `<img src="${newGarmentImg}">` : `<div class="no-img">Toca para subir foto</div>`}
+        </div>
+        <input type="file" accept="image/*" id="newGarmentFile" onchange="onNewGarmentImg(event)">
+      </div>
+      <div class="field"><label>Nombre</label><input id="ngNombre" placeholder="Ej. Blusa floral manga larga"></div>
+      <div class="field"><label>Categoría</label>
+        <div class="chk-row">${CATEGORIAS_PRINCIPALES.map(c=>`<div class="chk-pill ${newGarmentPrincipal===c?'on':''}" onclick="setNewGarmentPrincipal('${c}')">${c}</div>`).join('')}</div>
+      </div>
+      ${newGarmentPrincipal==='Ropa' ? `
+      <div class="field"><label>Tipo de prenda</label>
+        <select id="ngCategoria">
+          <option value="blusa">Blusa</option><option value="camisa">Camisa</option><option value="pantalon">Pantalón</option>
+          <option value="falda">Falda</option><option value="vestido">Vestido</option><option value="chaqueta">Chaqueta</option>
+          <option value="calzado">Calzado</option>
+        </select>
+      </div>` : ''}
+      <div class="field"><label>Género</label>
+        <select id="ngGenero"><option value="dama">Dama</option><option value="caballero">Caballero</option><option value="nino">Niño/a</option><option value="unisex">Unisex</option></select>
+      </div>
+      <div class="field"><label>Precio (USD)</label><input id="ngPrecio" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label>Tallas disponibles</label>
+        <div class="chk-row">${['XS','S','M','L','XL','Única'].map(t=>`<div class="chk-pill ${newGarmentTallas.has(t)?'on':''}" onclick="toggleTalla('${t}')">${t}</div>`).join('')}</div>
+      </div>
+      <div class="field"><label>Combina bien con</label>
+        <div class="chk-row">${['blusa','camisa','pantalon','falda','vestido','chaqueta','calzado','collares','aretes','tobilleras'].map(c=>`<div class="chk-pill ${newGarmentCombina.has(c)?'on':''}" onclick="toggleCombina('${c}')">${categoriaLabel(c)}</div>`).join('')}</div>
+      </div>
+      <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="saveNewGarment()">💾 Guardar / publicar prenda</button>
+    </div>
+  `;
+}
+function setNewGarmentPrincipal(c){ newGarmentPrincipal=c; setAdminTab('subir'); }
+function onNewGarmentImg(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  compressImageFile(file, 900, 0.82).then(dataUrl=>{ newGarmentImg=dataUrl; setAdminTab('subir'); });
+}
+function toggleTalla(t){ newGarmentTallas.has(t)?newGarmentTallas.delete(t):newGarmentTallas.add(t); setAdminTab('subir'); }
+function toggleCombina(c){ newGarmentCombina.has(c)?newGarmentCombina.delete(c):newGarmentCombina.add(c); setAdminTab('subir'); }
+async function saveNewGarment(){
+  const nombre = document.getElementById('ngNombre').value.trim();
+  const precio = parseFloat(document.getElementById('ngPrecio').value)||0;
+  if(!nombre){ toast('Ingresa el nombre de la prenda'); return; }
+  const subCategoria = newGarmentPrincipal==='Ropa'
+    ? document.getElementById('ngCategoria').value
+    : newGarmentPrincipal.toLowerCase();
+  const g = {
+    id: 'g_'+Date.now(),
+    nombre, precio,
+    categoriaPrincipal: newGarmentPrincipal,
+    categoria: subCategoria,
+    genero: document.getElementById('ngGenero').value,
+    tallas: Array.from(newGarmentTallas),
+    combinaCon: Array.from(newGarmentCombina),
+    imagen: newGarmentImg,
+    activo: true,
+    estado: 'disponible',
+    creado: todayISO()
+  };
+  STATE.garments.unshift(g);
+  await fbSaveGarment(g);
+  newGarmentImg=null; newGarmentTallas=new Set(); newGarmentCombina=new Set(); newGarmentPrincipal='Ropa';
+  toast('Prenda publicada 🎉');
+  setAdminTab('catalogo');
+}
+
+/* ----- Catálogo (admin, editar/eliminar) ----- */
+function estadoLabel(e){ return {disponible:'✅ Disponible', en_carrito:'🛒 En un carrito', vendido:'💰 Vendida'}[e||'disponible']||e; }
+function adminCatalogoList(){
+  if(STATE.garments.length===0) return `<div class="empty-state">Aún no hay prendas. Ve a "Subir prenda".</div>`;
+  return `<div class="card">` + STATE.garments.map(g=>`
+    <div class="admin-list-item">
+      ${g.imagen?`<img src="${g.imagen}">`:`<div style="width:44px;height:56px;background:var(--ivory-soft);border-radius:6px;"></div>`}
+      <div><div class="aname">${esc(g.nombre)}</div><div style="font-size:11px;color:var(--plum-soft);">${g.categoriaPrincipal||'Ropa'} · ${money(g.precio)} · ${estadoLabel(g.estado)} ${g.activo===false?'· oculta':''}</div></div>
+      <div class="actions">
+        <button class="icobtn" onclick="editGarment('${g.id}')">✏️</button>
+        <button class="icobtn" onclick="toggleActivo('${g.id}')">${g.activo===false?'👁️':'🚫'}</button>
+        <button class="icobtn" onclick="deleteGarment('${g.id}')">🗑️</button>
+      </div>
+    </div>`).join('') + `</div>`;
+}
+async function toggleActivo(id){
+  const g = STATE.garments.find(x=>x.id===id); if(!g) return;
+  g.activo = g.activo===false ? true : false;
+  await fbSaveGarment(g);
+  setAdminTab('catalogo');
+}
+function deleteGarment(id){
+  confirmModal('Eliminar prenda', '¿Seguro que deseas eliminarla FÍSICAMENTE de la base de datos? Útil si la subiste por error. Esta acción no se puede deshacer.', async ()=>{
+    STATE.garments = STATE.garments.filter(x=>x.id!==id);
+    STATE.cart = STATE.cart.filter(i=>i.garmentId!==id);
+    saveCart();
+    await fbDeleteGarment(id);
+    closeModal();
+    setAdminTab('catalogo');
+    toast('Prenda eliminada de la base de datos');
+  });
+}
+/* Editar una prenda ya publicada, con botones explícitos de Guardar cambios
+   y Eliminar definitivamente (por si se subió algo por error). */
+function editGarment(id){
+  const g = STATE.garments.find(x=>x.id===id);
+  if(!g) return;
+  const tallasSet = new Set(g.tallas||[]);
+  const combinaSet = new Set(g.combinaCon||[]);
+  openModal(`
+    <div class="modal-head"><h3>Editar prenda</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="field">
+      <label>Foto</label>
+      <div class="img-wrap" style="border-radius:12px; margin-bottom:8px;">${g.imagen?`<img src="${g.imagen}">`:`<div class="no-img">Sin foto</div>`}</div>
+      <input type="file" accept="image/*" onchange="onEditGarmentImg(event,'${id}')">
+    </div>
+    <div class="field"><label>Nombre</label><input id="egNombre" value="${esc(g.nombre)}"></div>
+    <div class="field"><label>Categoría</label>
+      <select id="egPrincipal">${CATEGORIAS_PRINCIPALES.map(c=>`<option value="${c}" ${g.categoriaPrincipal===c?'selected':''}>${c}</option>`).join('')}</select>
+    </div>
+    <div class="field"><label>Precio (USD)</label><input id="egPrecio" type="number" step="0.01" value="${g.precio}"></div>
+    <div class="field"><label>Género</label>
+      <select id="egGenero"><option value="dama" ${g.genero==='dama'?'selected':''}>Dama</option><option value="caballero" ${g.genero==='caballero'?'selected':''}>Caballero</option><option value="nino" ${g.genero==='nino'?'selected':''}>Niño/a</option><option value="unisex" ${g.genero==='unisex'?'selected':''}>Unisex</option></select>
+    </div>
+    <div class="field"><label>Estado</label>
+      <select id="egEstado"><option value="disponible" ${g.estado==='disponible'?'selected':''}>Disponible</option><option value="vendido" ${g.estado==='vendido'?'selected':''}>Vendida</option></select>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="saveEditGarment('${id}')">💾 Guardar cambios</button>
+    <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="deleteGarment('${id}')">🗑️ Eliminar definitivamente (subida por error)</button>
+  `);
+}
+let editImgOverride = {};
+function onEditGarmentImg(ev, id){
+  const file = ev.target.files[0];
+  if(!file) return;
+  compressImageFile(file, 900, 0.82).then(dataUrl=>{ editImgOverride[id]=dataUrl; toast('Foto lista, toca "Guardar cambios"'); });
+}
+async function saveEditGarment(id){
+  const g = STATE.garments.find(x=>x.id===id);
+  if(!g) return;
+  g.nombre = document.getElementById('egNombre').value.trim() || g.nombre;
+  g.categoriaPrincipal = document.getElementById('egPrincipal').value;
+  g.precio = parseFloat(document.getElementById('egPrecio').value)||0;
+  g.genero = document.getElementById('egGenero').value;
+  g.estado = document.getElementById('egEstado').value;
+  if(editImgOverride[id]){ g.imagen = editImgOverride[id]; delete editImgOverride[id]; }
+  await fbSaveGarment(g);
+  closeModal();
+  setAdminTab('catalogo');
+  toast('Cambios guardados');
+}
+
+/* ----- Tickets con filtros ----- */
+let ticketFilters = {desde:'', hasta:'', cliente:'', genero:'', tipo:''};
+function adminTicketsList(){
+  let list = STATE.tickets.slice();
+  if(ticketFilters.desde) list = list.filter(t=> new Date(t.fecha) >= new Date(ticketFilters.desde));
+  if(ticketFilters.hasta) list = list.filter(t=> new Date(t.fecha) <= new Date(ticketFilters.hasta+'T23:59:59'));
+  if(ticketFilters.cliente) list = list.filter(t=> t.cliente.nombre.toLowerCase().includes(ticketFilters.cliente.toLowerCase()));
+  if(ticketFilters.genero) list = list.filter(t=> t.cliente.genero===ticketFilters.genero);
+  if(ticketFilters.tipo) list = list.filter(t=> t.cliente.tipo===ticketFilters.tipo);
+  const total = list.reduce((s,t)=>s+t.total,0);
+  return `
+    <div class="card" style="padding:14px; margin-bottom:14px;">
+      <div class="field"><label>Desde</label><input type="date" onchange="setTF('desde',this.value)" value="${ticketFilters.desde}"></div>
+      <div class="field"><label>Hasta</label><input type="date" onchange="setTF('hasta',this.value)" value="${ticketFilters.hasta}"></div>
+      <div class="field"><label>Cliente</label><input placeholder="Buscar nombre" onchange="setTF('cliente',this.value)" value="${ticketFilters.cliente}"></div>
+      <div class="field"><label>Género</label><select onchange="setTF('genero',this.value)">
+        <option value="">Todos</option><option value="dama">Dama</option><option value="caballero">Caballero</option><option value="nino">Niño/a</option><option value="unisex">Unisex</option>
+      </select></div>
+      <div class="field"><label>Tipo de cliente</label><select onchange="setTF('tipo',this.value)">
+        <option value="">Todos</option><option value="nino">Niño</option><option value="joven">Joven</option><option value="adulto">Adulto</option><option value="adulto_mayor">Adulto mayor</option>
+      </select></div>
+      <button class="btn btn-ghost btn-block" onclick="exportTicketsExcel()">⬇️ Exportar Excel</button>
+    </div>
+    <div class="stat-box" style="margin-bottom:12px;"><div class="val">${money(total)}</div><div class="lbl">Total filtrado (${list.length} tickets)</div></div>
+    ${list.length===0? '<div class="empty-state">No hay tickets con estos filtros.</div>' : list.map(t=>`
+      <div class="ticket-row">
+        <div class="tr-top"><span class="tr-num">${t.folio}</span><span class="mono">${money(t.total)}</span></div>
+        <div class="tr-meta">${fmtDate(t.fecha)} · ${esc(t.cliente.nombre)} · ${generoLabel(t.cliente.genero)} · ${t.cliente.tipo}</div>
+      </div>`).join('')}
+  `;
+}
+function setTF(k,v){ ticketFilters[k]=v; setAdminTab('tickets'); }
+function exportTicketsExcel(){
+  const rows = STATE.tickets.map(t=>({
+    Folio:t.folio, Fecha:fmtDate(t.fecha), Cliente:t.cliente.nombre, Telefono:t.cliente.telefono,
+    Genero:generoLabel(t.cliente.genero), Tipo:t.cliente.tipo, Items:t.items.map(i=>`${i.cantidad}x ${i.nombre}`).join('; '), Total:t.total
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Tickets');
+  XLSX.writeFile(wb, 'OutfitLens_Tickets.xlsx');
+}
+
+/* ----- Config tienda ----- */
+function adminConfig(){
+  return `
+    <div class="card" style="padding:16px;">
+      <div class="field"><label>Nombre de la tienda</label><input id="cfgNombre" value="${esc(STATE.config.nombreTienda||'')}"></div>
+      <div class="field"><label>WhatsApp de la tienda (con código de país)</label><input id="cfgWa" placeholder="Ej. 593987654321" value="${esc(STATE.config.whatsappTienda||'')}"></div>
+      <button class="btn btn-primary btn-block" onclick="saveConfig()">Guardar configuración</button>
+      <div class="note-box">La conexión Firebase (base de datos) queda fija en el código de la app y no es editable desde aquí, para evitar que se dañe por error.</div>
+    </div>
+  `;
+}
+async function saveConfig(){
+  STATE.config.nombreTienda = document.getElementById('cfgNombre').value.trim();
+  STATE.config.whatsappTienda = document.getElementById('cfgWa').value.trim();
+  await fbSaveConfig();
+  toast('Configuración guardada');
+}
+
+/* ----- Respaldo / Restauración ----- */
+function adminRespaldo(){
+  return `
+    <div class="card" style="padding:16px;">
+      <p style="font-size:12.5px;color:var(--plum-soft);margin-bottom:12px;">Descarga un respaldo completo (prendas con fotos, tickets y configuración) o restaura uno anterior.</p>
+      <button class="btn btn-primary btn-block" onclick="downloadBackup()">⬇️ Descargar respaldo (.json)</button>
+      <div style="margin-top:12px;">
+        <label style="display:block;font-size:11.5px;font-weight:700;color:var(--plum-soft);margin-bottom:6px;">RESTAURAR DESDE ARCHIVO</label>
+        <input type="file" accept="application/json" onchange="restoreBackup(event)">
+      </div>
+    </div>
+  `;
+}
+function downloadBackup(){
+  const data = {
+    version:1, exportado: todayISO(),
+    garments: STATE.garments, tickets: STATE.tickets, config: STATE.config, counters: STATE.counters
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download = `outfitlens-respaldo-${Date.now()}.json`; a.click();
+  URL.revokeObjectURL(url);
+}
+function restoreBackup(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    confirmModal('Restaurar respaldo', 'Esto reemplazará el catálogo, tickets y configuración actuales. ¿Continuar?', async ()=>{
+      try{
+        const data = JSON.parse(reader.result);
+        STATE.garments = data.garments||[];
+        STATE.tickets = data.tickets||[];
+        STATE.config = data.config||STATE.config;
+        STATE.counters = data.counters||STATE.counters;
+        saveLocal();
+        if(apiReady){
+          for(const g of STATE.garments) await fbSaveGarment(g);
+          await fbSaveConfig();
+        }
+        closeModal();
+        toast('Respaldo restaurado ✅ (los tickets se mantienen tal como están en la base; solo se restauran prendas y configuración)');
+        setAdminTab('resumen');
+      }catch(e){ toast('El archivo no es un respaldo válido'); }
+    });
+  };
+  reader.readAsText(file);
+}
+
+/* =========================================================================
+   Utilidades
+   ========================================================================= */
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function compressImageFile(file, maxW, quality){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const scale = Math.min(1, maxW/img.width);
+        const w = Math.round(img.width*scale), h = Math.round(img.height*scale);
+        const canvas = document.createElement('canvas'); canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* Modal genérico */
+function openModal(html){
+  document.getElementById('modalRoot').innerHTML = `<div class="modal-overlay" onclick="if(event.target===this) closeModal()"><div class="modal-sheet">${html}</div></div>`;
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+/* Confirm modal a la medida (reemplaza window.confirm para compatibilidad iOS) */
+function confirmModal(title, msg, onYes){
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="modal-overlay">
+      <div class="confirm-box">
+        <h3 style="font-size:18px;">${esc(title)}</h3>
+        <p>${esc(msg)}</p>
+        <div class="confirm-actions">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-danger" style="flex:1;" id="confirmYesBtn">Sí, continuar</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('confirmYesBtn').onclick = onYes;
+}
+
+/* =========================================================================
+   Arranque
+   ========================================================================= */
+window.addEventListener('load', ()=>{
+  loadLocal();
+  initAuth();
+  apiLoadAll();
+  const auth = localStorage.getItem('ol_auth');
+  if(auth){
+    try{ STATE.session = JSON.parse(auth); }catch(e){}
+  }
+  if(STATE.session && STATE.session.mode){
+    enterApp();
+  }
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW registro falló', e));
+  }
+  // Actualiza el catálogo cada 12s (mientras la pestaña está visible) para que
+  // las reservas hechas desde otro celular/dispositivo se reflejen aquí,
+  // ya que las prendas son piezas únicas de garage sale.
+  setInterval(()=>{ if(document.visibilityState==='visible') apiLoadAll(); }, 12000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') apiLoadAll(); });
+});
+</script>
+</body>
+</html>

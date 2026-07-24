@@ -1,0 +1,7 @@
+name = "outfitlens"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "outfitlens-db"
+database_id = "3af52279-014b-4a7a-8093-2721fc51c265"
