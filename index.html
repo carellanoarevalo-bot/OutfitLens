@@ -442,7 +442,7 @@ async function apiLoadAll(){
     apiReady = true;
     saveLocal();
     setSyncStatus(true, 'Conectado (Cloudflare D1)');
-    if(['catalogo','look','cuenta'].includes(STATE.currentView)) render();
+    if(['catalogo','look'].includes(STATE.currentView)) render();
   }catch(e){
     console.error('No se pudo conectar a la API D1, usando datos locales', e);
     apiReady = false;
