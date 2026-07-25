@@ -1,8 +1,9 @@
 // GET  /api/tickets  -> lista todos los tickets
 // POST /api/tickets   -> crea un ticket: asigna folio secuencial atómico,
-//                        guarda datos de la clienta y marca las prendas
-//                        vendidas como 'vendido' en la misma operación.
-// body: { cliente:{nombre,telefono,genero,tipo}, items:[...], total }
+//                        guarda datos de la clienta (y su uid si inició sesión)
+//                        y marca las prendas vendidas como 'vendido' en la
+//                        misma operación.
+// body: { cliente:{nombre,telefono,genero,tipo,uid}, items:[...], total }
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -21,7 +22,8 @@ function rowToTicket(r) {
       nombre: r.cliente_nombre,
       telefono: r.cliente_telefono,
       genero: r.cliente_genero,
-      tipo: r.cliente_tipo
+      tipo: r.cliente_tipo,
+      uid: r.cliente_uid || null
     },
     items: r.items ? JSON.parse(r.items) : [],
     total: r.total
@@ -57,9 +59,9 @@ export async function onRequestPost({ request, env }) {
     const stmts = [
       env.DB.prepare("UPDATE counters SET valor = ? WHERE clave = 'ticketSeq'").bind(numero),
       env.DB.prepare(`
-        INSERT INTO tickets (id, numero, folio, fecha, cliente_nombre, cliente_telefono, cliente_genero, cliente_tipo, items, total)
-        VALUES (?,?,?,?,?,?,?,?,?,?)
-      `).bind(id, numero, folio, fecha, cliente.nombre, cliente.telefono || '', cliente.genero || '', cliente.tipo || '', JSON.stringify(items), total)
+        INSERT INTO tickets (id, numero, folio, fecha, cliente_nombre, cliente_telefono, cliente_genero, cliente_tipo, items, total, cliente_uid)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+      `).bind(id, numero, folio, fecha, cliente.nombre, cliente.telefono || '', cliente.genero || '', cliente.tipo || '', JSON.stringify(items), total, cliente.uid || null)
     ];
     // 2) Marcar cada prenda vendida como 'vendido' (ya no vuelve al catálogo).
     for (const it of items) {
@@ -72,7 +74,7 @@ export async function onRequestPost({ request, env }) {
     return json(rowToTicket({
       id, numero, folio, fecha,
       cliente_nombre: cliente.nombre, cliente_telefono: cliente.telefono,
-      cliente_genero: cliente.genero, cliente_tipo: cliente.tipo,
+      cliente_genero: cliente.genero, cliente_tipo: cliente.tipo, cliente_uid: cliente.uid,
       items: JSON.stringify(items), total
     }));
   } catch (e) {

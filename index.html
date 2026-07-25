@@ -196,6 +196,9 @@ nav.bottomnav{
 .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--rosebronze); border-color:var(--rosebronze);}
 .error-msg{color:var(--danger); font-size:12.5px; margin:6px 0 0;}
 .login-body .skip{text-align:center; margin-top:14px; font-size:12px; color:var(--sage); font-weight:600;}
+.auth-toggle{display:flex; background:var(--ivory-soft); border-radius:12px; padding:4px; margin-bottom:16px;}
+.auth-toggle-btn{flex:1; border:none; background:transparent; padding:9px; border-radius:9px; font-size:12.5px; font-weight:700; color:var(--plum-soft);}
+.auth-toggle-btn.active{background:#fff; color:var(--plum); box-shadow:var(--shadow-sm);}
 
 /* ===== Try-on ===== */
 .tryon-stage{
@@ -282,18 +285,32 @@ nav.bottomnav{
       <div class="slogan">Mírate, combínate y compra con seguridad.</div>
     </div>
     <div class="login-body">
-      <p class="lead">Acceso de administrador de la tienda</p>
+      <div class="auth-toggle">
+        <button class="auth-toggle-btn active" id="toggleLoginBtn" onclick="setAuthMode('login')">Iniciar sesión</button>
+        <button class="auth-toggle-btn" id="toggleRegisterBtn" onclick="setAuthMode('register')">Crear cuenta</button>
+      </div>
+      <p class="lead" id="authLead">Inicia sesión con tu correo</p>
+      <div id="registerFields" class="hidden">
+        <div class="field">
+          <label>Nombre completo</label>
+          <input id="regNombre" type="text" autocomplete="name" placeholder="Tu nombre">
+        </div>
+        <div class="field">
+          <label>Teléfono</label>
+          <input id="regTelefono" type="tel" autocomplete="tel" placeholder="09XXXXXXXX">
+        </div>
+      </div>
       <div class="field">
-        <label>Correo (Firebase)</label>
-        <input id="loginUser" type="email" autocomplete="username" placeholder="admin@tutienda.com">
+        <label>Correo</label>
+        <input id="loginUser" type="email" autocomplete="username" placeholder="tu@correo.com">
       </div>
       <div class="field">
         <label>Contraseña</label>
         <input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••">
       </div>
       <p class="error-msg hidden" id="loginError">Correo o contraseña incorrectos.</p>
-      <button class="btn btn-primary btn-block" id="loginBtn" onclick="doLogin()">Ingresar como administrador</button>
-      <div class="skip" onclick="skipLogin()">Continuar como clienta →</div>
+      <button class="btn btn-primary btn-block" id="loginBtn" onclick="doAuthSubmit()">Iniciar sesión</button>
+      <div class="skip" onclick="skipLogin()">Continuar sin cuenta →</div>
     </div>
   </div>
 </div>
@@ -376,7 +393,9 @@ let STATE = {
   config: { whatsappTienda: "", nombreTienda: "OutfitLens" },
   counters: { ticketSeq: 0 },
   cart: [],           // [{garmentId, nombre, precio, cantidad, imagen}]
-  session: { isAdmin: false, mode: null }, // mode: 'admin' | 'guest'
+  session: { isAdmin: false, mode: null }, // mode: 'admin' | 'usuario' | 'guest'
+  miCompras: [],      // historial de compras de la clienta logueada
+  misLooks: [],       // looks guardados de la clienta logueada
   currentView: 'catalogo',
   look: { garmentId: null, photo: null, x:50, y:35, scale:100, rotate:0, opacity:85, flip:false, savedImg:null }
 };
@@ -486,7 +505,33 @@ async function apiCreateTicket(payload){
   }
 }
 
-/* ---------------------------- Login (Firebase Auth) ---------------------------- */
+/* ---------------------------- Login / Registro (Firebase Auth) ---------------------------- */
+// Correos con acceso de administrador. Editar aquí para agregar más (ej. vendedoras de confianza).
+const ADMIN_EMAILS = ['admin@outfitlens.com'];
+
+let authMode = 'login'; // 'login' | 'register'
+function setAuthMode(mode){
+  authMode = mode;
+  document.getElementById('toggleLoginBtn').classList.toggle('active', mode==='login');
+  document.getElementById('toggleRegisterBtn').classList.toggle('active', mode==='register');
+  document.getElementById('registerFields').classList.toggle('hidden', mode!=='register');
+  document.getElementById('authLead').textContent = mode==='login' ? 'Inicia sesión con tu correo' : 'Crea tu cuenta de clienta';
+  document.getElementById('loginBtn').textContent = mode==='login' ? 'Iniciar sesión' : 'Crear cuenta';
+  document.getElementById('loginError').classList.add('hidden');
+}
+function doAuthSubmit(){
+  if(authMode==='login') doLogin(); else doRegister();
+}
+async function resolveSessionAfterAuth(user){
+  const isAdmin = ADMIN_EMAILS.includes((user.email||'').toLowerCase());
+  if(isAdmin){
+    STATE.session = {isAdmin:true, mode:'admin', email:user.email, uid:user.uid};
+  }else{
+    STATE.session = {isAdmin:false, mode:'usuario', email:user.email, uid:user.uid, profile:null};
+    await loadMiCuentaData();
+  }
+  localStorage.setItem('ol_auth', JSON.stringify({isAdmin:STATE.session.isAdmin, mode:STATE.session.mode, email:user.email, uid:user.uid}));
+}
 async function doLogin(){
   const email = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value;
@@ -495,16 +540,51 @@ async function doLogin(){
   if(!fbAuth){ document.getElementById('loginError').textContent = 'Firebase Auth no está configurado todavía (ver DEFAULT_FB_CFG en el código).'; document.getElementById('loginError').classList.remove('hidden'); return; }
   btn.disabled = true; btn.textContent = 'Ingresando…';
   try{
-    await fbAuth.signInWithEmailAndPassword(email, pass);
-    STATE.session = {isAdmin:true, mode:'admin', email};
-    localStorage.setItem('ol_auth', JSON.stringify(STATE.session));
+    const cred = await fbAuth.signInWithEmailAndPassword(email, pass);
+    await resolveSessionAfterAuth(cred.user);
     enterApp();
   }catch(e){
     document.getElementById('loginError').textContent = 'Correo o contraseña incorrectos.';
     document.getElementById('loginError').classList.remove('hidden');
   }finally{
-    btn.disabled = false; btn.textContent = 'Ingresar como administrador';
+    btn.disabled = false; btn.textContent = authMode==='login' ? 'Iniciar sesión' : 'Crear cuenta';
   }
+}
+async function doRegister(){
+  const nombre = document.getElementById('regNombre').value.trim();
+  const telefono = document.getElementById('regTelefono').value.trim();
+  const email = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const btn = document.getElementById('loginBtn');
+  document.getElementById('loginError').classList.add('hidden');
+  if(!fbAuth){ document.getElementById('loginError').textContent = 'Firebase Auth no está configurado todavía.'; document.getElementById('loginError').classList.remove('hidden'); return; }
+  if(!nombre){ document.getElementById('loginError').textContent = 'Ingresa tu nombre.'; document.getElementById('loginError').classList.remove('hidden'); return; }
+  if(!pass || pass.length<6){ document.getElementById('loginError').textContent = 'La contraseña debe tener al menos 6 caracteres.'; document.getElementById('loginError').classList.remove('hidden'); return; }
+  btn.disabled = true; btn.textContent = 'Creando cuenta…';
+  try{
+    const cred = await fbAuth.createUserWithEmailAndPassword(email, pass);
+    try{
+      await apiFetch('/users', {method:'POST', body:JSON.stringify({uid:cred.user.uid, email, nombre, telefono, creado:todayISO()})});
+    }catch(e){ console.error('No se pudo guardar el perfil en D1', e); }
+    await resolveSessionAfterAuth(cred.user);
+    STATE.session.profile = {nombre, telefono};
+    enterApp();
+    toast(`¡Bienvenida, ${nombre}! 🎉`);
+  }catch(e){
+    document.getElementById('loginError').textContent = e.code==='auth/email-already-in-use' ? 'Ese correo ya tiene una cuenta — inicia sesión en vez de registrarte.' : 'No se pudo crear la cuenta. Revisa el correo y la contraseña.';
+    document.getElementById('loginError').classList.remove('hidden');
+  }finally{
+    btn.disabled = false; btn.textContent = authMode==='login' ? 'Iniciar sesión' : 'Crear cuenta';
+  }
+}
+async function loadMiCuentaData(){
+  if(!STATE.session.uid) return;
+  try{
+    const data = await apiFetch('/users/'+STATE.session.uid);
+    STATE.session.profile = data.profile;
+    STATE.miCompras = data.tickets || [];
+    STATE.misLooks = data.looks || [];
+  }catch(e){ console.error('No se pudo cargar el historial de la clienta', e); }
 }
 function skipLogin(){
   STATE.session = {isAdmin:false, mode:'guest'};
@@ -512,10 +592,12 @@ function skipLogin(){
   enterApp();
 }
 function logout(){
-  confirmModal('Cerrar sesión', '¿Deseas salir del modo administrador?', ()=>{
+  const esAdmin = STATE.session.isAdmin;
+  confirmModal('Cerrar sesión', esAdmin ? '¿Deseas salir del modo administrador?' : '¿Deseas cerrar tu sesión?', ()=>{
     if(fbAuth) fbAuth.signOut().catch(()=>{});
     STATE.session = {isAdmin:false, mode:'guest'};
-    localStorage.setItem('ol_auth', JSON.stringify(STATE.session));
+    STATE.miCompras = []; STATE.misLooks = [];
+    localStorage.removeItem('ol_auth');
     closeModal();
     goView('cuenta');
     toast('Sesión cerrada');
@@ -821,11 +903,25 @@ function drawTryOnCanvas(g){
   };
   baseImg.src = STATE.look.photo;
 }
-function saveLookSnapshot(){
+async function saveLookSnapshot(){
   const canvas = document.getElementById('tryonCanvas');
   if(!canvas) return;
   STATE.look.savedImg = canvas.toDataURL('image/jpeg',0.9);
-  toast('Look guardado ✨');
+  const g = STATE.garments.find(x=>x.id===STATE.look.garmentId);
+  if(STATE.session.mode==='usuario' && STATE.session.uid){
+    try{
+      await apiFetch('/looks', {method:'POST', body:JSON.stringify({
+        uid: STATE.session.uid, garmentId: STATE.look.garmentId, garmentNombre: g?g.nombre:'', imagen: STATE.look.savedImg
+      })});
+      STATE.misLooks.unshift({id:'lk_'+Date.now(), garmentId:STATE.look.garmentId, garmentNombre:g?g.nombre:'', imagen:STATE.look.savedImg});
+      toast('Look guardado en tu cuenta ✨');
+    }catch(e){
+      console.error(e);
+      toast('Look guardado (no se pudo sincronizar con tu cuenta)');
+    }
+  }else{
+    toast('Look guardado ✨ — crea una cuenta para conservarlo en "Mis looks"');
+  }
   render();
 }
 
@@ -881,10 +977,11 @@ function abandonCart(){
 }
 
 function openCheckoutModal(){
+  const p = (STATE.session.mode==='usuario' && STATE.session.profile) ? STATE.session.profile : {};
   openModal(`
     <div class="modal-head"><h3>Registrar venta — datos de la clienta</h3><button class="close-x" onclick="closeModal()">✕</button></div>
-    <div class="field"><label>Nombre completo</label><input id="ckNombre" placeholder="Nombre y apellido"></div>
-    <div class="field"><label>Teléfono (WhatsApp)</label><input id="ckTelefono" placeholder="09XXXXXXXX"></div>
+    <div class="field"><label>Nombre completo</label><input id="ckNombre" placeholder="Nombre y apellido" value="${esc(p.nombre||'')}"></div>
+    <div class="field"><label>Teléfono (WhatsApp)</label><input id="ckTelefono" placeholder="09XXXXXXXX" value="${esc(p.telefono||'')}"></div>
     <div class="field"><label>Género</label>
       <select id="ckGenero"><option value="dama">Dama</option><option value="caballero">Caballero</option><option value="nino">Niño/a</option><option value="unisex">Unisex</option></select>
     </div>
@@ -903,11 +1000,13 @@ async function confirmPurchase(){
   if(!nombre){ toast('Ingresa el nombre de la clienta'); return; }
   const btn = document.getElementById('ckConfirmBtn');
   btn.disabled = true; btn.textContent = 'Generando ticket…';
+  const uid = STATE.session.mode==='usuario' ? STATE.session.uid : null;
   const ticket = await apiCreateTicket({
-    cliente: {nombre, telefono, genero, tipo},
+    cliente: {nombre, telefono, genero, tipo, uid},
     items: STATE.cart.map(i=>({...i})),
     total: cartTotal()
   });
+  if(uid) STATE.miCompras.unshift(ticket);
   STATE.cart = [];
   saveCart();
   closeModal();
@@ -999,55 +1098,89 @@ function waSendTicket(ticketId){
    CUENTA (login público / panel admin)
    ========================================================================= */
 function viewCuenta(){
-  if(!STATE.session.isAdmin){
+  if(STATE.session.mode==='admin'){
     return `
-      <div class="section-title"><h2>Cuenta</h2></div>
-      <div class="card" style="padding:20px; text-align:center;">
-        <div style="font-size:34px;">🧑‍💼</div>
-        <p style="font-size:13px; color:var(--plum-soft); margin:10px 0 16px;">Ingresa como administrador para publicar prendas, ver tickets y configurar la tienda.</p>
-        <button class="btn btn-primary btn-block" onclick="showAdminLoginModal()">Ingresar como administrador</button>
-      </div>`;
+      <div class="section-title"><h2>Panel de administrador</h2><button class="btn btn-ghost" style="padding:8px 12px;font-size:12px;" onclick="logout()">Cerrar sesión</button></div>
+      <div class="tabs-sub">
+        <div class="tab-chip ${adminTab==='resumen'?'active':''}" onclick="setAdminTab('resumen')">Resumen</div>
+        <div class="tab-chip ${adminTab==='subir'?'active':''}" onclick="setAdminTab('subir')">Subir prenda</div>
+        <div class="tab-chip ${adminTab==='catalogo'?'active':''}" onclick="setAdminTab('catalogo')">Catálogo</div>
+        <div class="tab-chip ${adminTab==='tickets'?'active':''}" onclick="setAdminTab('tickets')">Tickets</div>
+        <div class="tab-chip ${adminTab==='reporte'?'active':''}" onclick="setAdminTab('reporte')">Reporte</div>
+        <div class="tab-chip ${adminTab==='config'?'active':''}" onclick="setAdminTab('config')">Config.</div>
+        <div class="tab-chip ${adminTab==='respaldo'?'active':''}" onclick="setAdminTab('respaldo')">Respaldo</div>
+      </div>
+      <div id="adminBody">${renderAdminTab()}</div>
+    `;
   }
+  if(STATE.session.mode==='usuario'){
+    const p = STATE.session.profile || {};
+    return `
+      <div class="summary-panel" style="margin-bottom:16px;">
+        <div class="summary-panel-head" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>👋 Hola, ${esc(p.nombre || STATE.session.email)}</span>
+          <button class="btn btn-outline" style="padding:6px 12px;font-size:11.5px;" onclick="logout()">Cerrar sesión</button>
+        </div>
+        <div class="summary-panel-body" style="padding:12px 16px;">
+          <p style="font-size:12px;color:var(--plum-soft);margin:0;">${esc(STATE.session.email||'')}${p.telefono?' · '+esc(p.telefono):''}</p>
+        </div>
+      </div>
+      <div class="tabs-sub">
+        <div class="tab-chip ${usuarioTab==='compras'?'active':''}" onclick="setUsuarioTab('compras')">Mis compras</div>
+        <div class="tab-chip ${usuarioTab==='looks'?'active':''}" onclick="setUsuarioTab('looks')">Mis looks guardados</div>
+      </div>
+      <div id="usuarioBody">${renderUsuarioTab()}</div>
+    `;
+  }
+  // Sin cuenta (navegando como invitada)
   return `
-    <div class="section-title"><h2>Panel de administrador</h2><button class="btn btn-ghost" style="padding:8px 12px;font-size:12px;" onclick="logout()">Cerrar sesión</button></div>
-    <div class="tabs-sub">
-      <div class="tab-chip ${adminTab==='resumen'?'active':''}" onclick="setAdminTab('resumen')">Resumen</div>
-      <div class="tab-chip ${adminTab==='subir'?'active':''}" onclick="setAdminTab('subir')">Subir prenda</div>
-      <div class="tab-chip ${adminTab==='catalogo'?'active':''}" onclick="setAdminTab('catalogo')">Catálogo</div>
-      <div class="tab-chip ${adminTab==='tickets'?'active':''}" onclick="setAdminTab('tickets')">Tickets</div>
-      <div class="tab-chip ${adminTab==='reporte'?'active':''}" onclick="setAdminTab('reporte')">Reporte</div>
-      <div class="tab-chip ${adminTab==='config'?'active':''}" onclick="setAdminTab('config')">Config.</div>
-      <div class="tab-chip ${adminTab==='respaldo'?'active':''}" onclick="setAdminTab('respaldo')">Respaldo</div>
-    </div>
-    <div id="adminBody">${renderAdminTab()}</div>
-  `;
+    <div class="section-title"><h2>Cuenta</h2></div>
+    <div class="card" style="padding:20px; text-align:center;">
+      <div style="font-size:34px;">🙋‍♀️</div>
+      <p style="font-size:13px; color:var(--plum-soft); margin:10px 0 16px;">Estás navegando sin cuenta. Crea una para guardar tu historial de compras y tus looks, o inicia sesión si ya tienes una (también es la entrada del administrador).</p>
+      <button class="btn btn-primary btn-block" onclick="goToLoginScreen()">Iniciar sesión / Crear cuenta</button>
+    </div>`;
 }
-function showAdminLoginModal(){
-  openModal(`
-    <div class="modal-head"><h3>Acceso administrador</h3><button class="close-x" onclick="closeModal()">✕</button></div>
-    <div class="field"><label>Correo (Firebase)</label><input id="mUser" type="email" placeholder="admin@tutienda.com"></div>
-    <div class="field"><label>Contraseña</label><input id="mPass" type="password" placeholder="••••••••"></div>
-    <p class="error-msg hidden" id="mErr">Correo o contraseña incorrectos.</p>
-    <button class="btn btn-primary btn-block" id="mLoginBtn" onclick="modalLogin()">Ingresar</button>
-  `);
+function goToLoginScreen(){
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  setAuthMode('login');
 }
-async function modalLogin(){
-  const email=document.getElementById('mUser').value.trim(), pass=document.getElementById('mPass').value;
-  const btn=document.getElementById('mLoginBtn');
-  document.getElementById('mErr').classList.add('hidden');
-  if(!fbAuth){ document.getElementById('mErr').textContent='Firebase Auth no está configurado (ver DEFAULT_FB_CFG).'; document.getElementById('mErr').classList.remove('hidden'); return; }
-  btn.disabled=true; btn.textContent='Ingresando…';
-  try{
-    await fbAuth.signInWithEmailAndPassword(email, pass);
-    STATE.session={isAdmin:true, mode:'admin', email};
-    localStorage.setItem('ol_auth', JSON.stringify(STATE.session));
-    closeModal(); render();
-  }catch(e){
-    document.getElementById('mErr').classList.remove('hidden');
-  }finally{
-    btn.disabled=false; btn.textContent='Ingresar';
+
+let usuarioTab = 'compras';
+function setUsuarioTab(t){ usuarioTab=t; document.getElementById('usuarioBody').innerHTML = renderUsuarioTab(); }
+function renderUsuarioTab(){
+  if(usuarioTab==='looks') return usuarioMisLooks();
+  return usuarioMisCompras();
+}
+function usuarioMisCompras(){
+  if(!STATE.miCompras || STATE.miCompras.length===0){
+    return `<div class="empty-state"><div class="ic">🧾</div>Todavía no tienes compras registradas.</div>`;
   }
+  return STATE.miCompras.map(t=>`
+    <div class="ticket-row">
+      <div class="tr-top"><span class="tr-num">${t.folio}</span><span class="mono">${money(t.total)}</span></div>
+      <div class="tr-meta">${fmtDate(t.fecha)} · ${t.items.map(i=>`${i.cantidad}× ${esc(i.nombre)}`).join(', ')}</div>
+      <button class="btn btn-ghost" style="margin-top:8px;padding:6px 10px;font-size:11.5px;" onclick="downloadTicketPDFFromList('${t.id}')">⬇️ Descargar PDF</button>
+    </div>`).join('');
 }
+function downloadTicketPDFFromList(ticketId){
+  const t = STATE.miCompras.find(x=>x.id===ticketId);
+  if(!t) return;
+  STATE.tickets = STATE.tickets.find(x=>x.id===ticketId) ? STATE.tickets : [...STATE.tickets, t];
+  downloadTicketPDF(ticketId);
+}
+function usuarioMisLooks(){
+  if(!STATE.misLooks || STATE.misLooks.length===0){
+    return `<div class="empty-state"><div class="ic">📸</div>Aún no has guardado ningún look. Ve a "Mi Look" y toca "Guardar look".</div>`;
+  }
+  return `<div class="garment-grid">` + STATE.misLooks.map(l=>`
+    <div class="polaroid">
+      <img src="${l.imagen}">
+      <div class="cap">${esc(l.garmentNombre||'')}</div>
+    </div>`).join('') + `</div>`;
+}
+
 
 let adminTab = 'resumen';
 function setAdminTab(t){ adminTab=t; document.getElementById('adminBody').innerHTML = renderAdminTab(); document.querySelectorAll('.tab-chip').forEach(c=>c.classList.toggle('active', c.textContent.trim()===tabLabel(t))); }
@@ -1507,13 +1640,16 @@ function confirmModal(title, msg, onYes){
 /* =========================================================================
    Arranque
    ========================================================================= */
-window.addEventListener('load', ()=>{
+window.addEventListener('load', async ()=>{
   loadLocal();
   initAuth();
   apiLoadAll();
   const auth = localStorage.getItem('ol_auth');
   if(auth){
     try{ STATE.session = JSON.parse(auth); }catch(e){}
+  }
+  if(STATE.session && STATE.session.mode==='usuario' && STATE.session.uid){
+    await loadMiCuentaData();
   }
   if(STATE.session && STATE.session.mode){
     enterApp();
