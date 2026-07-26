@@ -340,7 +340,6 @@ nav.bottomnav{
     <button class="navbtn active" data-view="catalogo" onclick="goView('catalogo')"><span class="ic">🛍️</span>Catálogo</button>
     <button class="navbtn" data-view="look" onclick="goView('look')"><span class="ic">📸</span>Mi Look</button>
     <button class="navbtn" data-view="carrito" onclick="goView('carrito')"><span class="ic">🛒</span>Carrito<span id="cartBadge" class="mono" style="font-size:9px;color:var(--rosebronze);"></span></button>
-    <button class="navbtn" data-view="cuenta" onclick="goView('cuenta')"><span class="ic">👤</span>Cuenta</button>
   </nav>
 </div>
 
@@ -965,7 +964,7 @@ function viewCarrito(){
             <div class="ci-name">${esc(i.nombre)}</div>
             <div class="swing-tag price" style="margin-top:4px;">${money(i.precio)}</div>
           </div>
-          <button class="icobtn" onclick="removeFromCart('${i.garmentId}')" title="Quitar">✕</button>
+          ${esAdmin ? `<button class="icobtn" onclick="removeFromCart('${i.garmentId}')" title="Quitar">✕</button>` : `<button class="btn btn-ghost" style="padding:7px 10px;font-size:11px;white-space:nowrap;" onclick="removeFromCart('${i.garmentId}')">↩️ Deshacer</button>`}
         </div>`).join('<div style="height:1px;background:var(--ivory-soft);"></div>')}
     </div>
     <div class="cart-total-row"><span>Total</span><span class="amt mono">${money(cartTotal())}</span></div>
@@ -973,10 +972,10 @@ function viewCarrito(){
       <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="openCheckoutModal()">🧾 Registrar venta</button>
     ` : `
       <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="openPedidoModal()">📩 Enviar pedido</button>
-      <div class="note-box" style="margin-top:8px;">La tienda revisa tu pedido y lo confirma — te avisamos por WhatsApp cuando esté aprobado.</div>
+      <div class="note-box" style="margin-top:8px;">La tienda revisa tu pedido y lo confirma — te avisamos por WhatsApp cuando esté aprobado. Si seleccionaste algo por error, toca "↩️ Deshacer" y la prenda vuelve al catálogo.</div>
     `}
     <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="waCartMessage()">💬 Enviar carrito por WhatsApp</button>
-    <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="abandonCart()">❌ ${esAdmin?'La clienta desistió (cancelar todo)':'Cancelar (quitar todo del carrito)'}</button>
+    <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="abandonCart()">❌ ${esAdmin?'La clienta desistió (cancelar todo)':'Deshacer toda la selección'}</button>
   `;
 }
 /* La clienta se arrepiente: todas las prendas reservadas vuelven a estar
@@ -1201,6 +1200,7 @@ function viewCuenta(){
         </div>
       </div>
       <div class="tabs-sub">
+        <div class="tab-chip ${usuarioTab==='catalogo'?'active':''}" onclick="setUsuarioTab('catalogo')">Catálogo</div>
         <div class="tab-chip ${usuarioTab==='compras'?'active':''}" onclick="setUsuarioTab('compras')">Mis compras</div>
         <div class="tab-chip ${usuarioTab==='looks'?'active':''}" onclick="setUsuarioTab('looks')">Mis looks guardados</div>
       </div>
@@ -1223,11 +1223,25 @@ function goToLoginScreen(){
   clearLoginFields();
 }
 
-let usuarioTab = 'compras';
+let usuarioTab = 'catalogo';
 function setUsuarioTab(t){ usuarioTab=t; document.getElementById('usuarioBody').innerHTML = renderUsuarioTab(); }
 function renderUsuarioTab(){
   if(usuarioTab==='looks') return usuarioMisLooks();
-  return usuarioMisCompras();
+  if(usuarioTab==='compras') return usuarioMisCompras();
+  return usuarioCatalogoPorCategoria();
+}
+/* Catálogo completo organizado por categoría, dentro del propio perfil de la
+   clienta, para elegir y comprar sin tener que cambiar de pestaña. */
+function usuarioCatalogoPorCategoria(){
+  let html = `<div class="note-box" style="margin-bottom:14px;">Marca el ✓ de lo que te guste — se reserva y pasa a tu carrito. Puedes deshacerlo desde el Carrito.</div>`;
+  CATEGORIAS_PRINCIPALES.forEach(cat=>{
+    const items = STATE.garments.filter(g=>g.activo!==false && (g.estado||'disponible')==='disponible' && (g.categoriaPrincipal||'Ropa')===cat);
+    html += `<div class="section-title" style="margin-top:18px;"><h2 style="font-size:16px;">${cat}</h2><span class="hint">${items.length}</span></div>`;
+    html += items.length===0
+      ? `<p style="font-size:12px;color:var(--plum-soft);margin-bottom:6px;">Sin prendas disponibles por ahora.</p>`
+      : `<div class="garment-grid">${items.map(garmentCard).join('')}</div>`;
+  });
+  return html;
 }
 function usuarioMisCompras(){
   const pendientes = (STATE.misPedidos||[]).filter(p=>p.estado==='pendiente');
