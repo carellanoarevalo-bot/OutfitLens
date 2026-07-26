@@ -591,9 +591,15 @@ async function loadMiCuentaData(){
 }
 function clearLoginFields(){
   const ids = ['loginUser','loginPass','regNombre','regTelefono'];
-  ids.forEach(id=>{ const el = document.getElementById(id); if(el) el.value=''; });
+  ids.forEach(id=>{ const el = document.getElementById(id); if(el){ el.value=''; el.blur(); } });
   const err = document.getElementById('loginError');
   if(err) err.classList.add('hidden');
+  // Safari a veces ignora autocomplete="off" y sugiere credenciales guardadas
+  // del Llavero basándose en el "name" del campo. Cambiarlo en cada carga
+  // hace más difícil que lo relacione con una entrada guardada anteriormente.
+  const rnd = Date.now();
+  const u = document.getElementById('loginUser'); if(u){ u.setAttribute('name', 'campo_'+rnd); u.setAttribute('autocomplete','off'); }
+  const p = document.getElementById('loginPass'); if(p){ p.setAttribute('name', 'campo_'+(rnd+1)); p.setAttribute('autocomplete','new-password'); }
 }
 function logout(){
   const esAdmin = STATE.session.isAdmin;
