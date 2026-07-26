@@ -590,6 +590,12 @@ async function loadMiCuentaData(){
     STATE.misPedidos = data.pedidos || [];
   }catch(e){ console.error('No se pudo cargar el historial de la clienta', e); }
 }
+function clearLoginFields(){
+  const ids = ['loginUser','loginPass','regNombre','regTelefono'];
+  ids.forEach(id=>{ const el = document.getElementById(id); if(el) el.value=''; });
+  const err = document.getElementById('loginError');
+  if(err) err.classList.add('hidden');
+}
 function logout(){
   const esAdmin = STATE.session.isAdmin;
   confirmModal('Cerrar sesión', esAdmin ? '¿Deseas salir del modo administrador?' : '¿Deseas cerrar tu sesión?', ()=>{
@@ -602,6 +608,7 @@ function logout(){
     document.getElementById('app').classList.add('hidden');
     document.getElementById('loginScreen').classList.remove('hidden');
     setAuthMode('login');
+    clearLoginFields();
     toast('Sesión cerrada');
   });
 }
@@ -1213,6 +1220,7 @@ function goToLoginScreen(){
   document.getElementById('app').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
   setAuthMode('login');
+  clearLoginFields();
 }
 
 let usuarioTab = 'compras';
@@ -1810,6 +1818,8 @@ window.addEventListener('load', async ()=>{
   }
   if(STATE.session && STATE.session.mode){
     enterApp();
+  }else{
+    clearLoginFields();
   }
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW registro falló', e));
