@@ -396,6 +396,8 @@ let STATE = {
   session: { isAdmin: false, mode: null }, // mode: 'admin' | 'usuario' | 'guest'
   miCompras: [],      // historial de compras de la clienta logueada
   misLooks: [],       // looks guardados de la clienta logueada
+  misPedidos: [],     // pedidos pendientes/rechazados de la clienta logueada
+  pedidos: [],        // pedidos pendientes/procesados (uso admin)
   currentView: 'catalogo',
   look: { garmentId: null, photo: null, x:50, y:35, scale:100, rotate:0, opacity:85, flip:false, savedImg:null }
 };
@@ -455,16 +457,18 @@ async function apiFetch(path, options){
 }
 async function apiLoadAll(){
   try{
-    const [garments, tickets, config] = await Promise.all([
-      apiFetch('/garments'), apiFetch('/tickets'), apiFetch('/config')
+    const [garments, tickets, config, pedidos] = await Promise.all([
+      apiFetch('/garments'), apiFetch('/tickets'), apiFetch('/config'), apiFetch('/pedidos')
     ]);
     STATE.garments = garments;
     STATE.tickets = tickets;
     STATE.config = {...STATE.config, ...config};
+    STATE.pedidos = pedidos;
     apiReady = true;
     saveLocal();
     setSyncStatus(true, 'Conectado (Cloudflare D1)');
     if(['catalogo','look'].includes(STATE.currentView)) render();
+    if(STATE.currentView==='cuenta' && STATE.session.mode==='admin' && adminTab==='pedidos') render();
   }catch(e){
     console.error('No se pudo conectar a la API D1, usando datos locales', e);
     apiReady = false;
@@ -584,6 +588,7 @@ async function loadMiCuentaData(){
     STATE.session.profile = data.profile;
     STATE.miCompras = data.tickets || [];
     STATE.misLooks = data.looks || [];
+    STATE.misPedidos = data.pedidos || [];
   }catch(e){ console.error('No se pudo cargar el historial de la clienta', e); }
 }
 function skipLogin(){
@@ -945,6 +950,7 @@ function viewCarrito(){
   if(STATE.cart.length===0){
     return `<div class="section-title"><h2>Carrito</h2></div><div class="empty-state"><div class="ic">🛒</div>Tu carrito está vacío.<br>Ve al catálogo y marca el ✓ de lo que te guste.</div>`;
   }
+  const esAdmin = STATE.session.mode==='admin';
   return `
     <div class="section-title"><h2>Carrito</h2><span class="hint">${STATE.cart.length} prenda(s) reservada(s)</span></div>
     <div class="card">
@@ -959,15 +965,20 @@ function viewCarrito(){
         </div>`).join('<div style="height:1px;background:var(--ivory-soft);"></div>')}
     </div>
     <div class="cart-total-row"><span>Total</span><span class="amt mono">${money(cartTotal())}</span></div>
-    <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="openCheckoutModal()">🧾 Registrar venta</button>
-    <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="waCartMessage()">💬 Enviar pedido por WhatsApp</button>
-    <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="abandonCart()">❌ La clienta desistió (cancelar todo)</button>
+    ${esAdmin ? `
+      <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="openCheckoutModal()">🧾 Registrar venta</button>
+    ` : `
+      <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="openPedidoModal()">📩 Enviar pedido</button>
+      <div class="note-box" style="margin-top:8px;">La tienda revisa tu pedido y lo confirma — te avisamos por WhatsApp cuando esté aprobado.</div>
+    `}
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="waCartMessage()">💬 Enviar carrito por WhatsApp</button>
+    <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="abandonCart()">❌ ${esAdmin?'La clienta desistió (cancelar todo)':'Cancelar (quitar todo del carrito)'}</button>
   `;
 }
 /* La clienta se arrepiente: todas las prendas reservadas vuelven a estar
    disponibles y reaparecen en su categoría del catálogo. */
 function abandonCart(){
-  confirmModal('Cancelar compra', '¿Seguro que la clienta ya no quiere estas prendas? Volverán a aparecer disponibles en el catálogo.', async ()=>{
+  confirmModal('Cancelar compra', '¿Seguro que ya no quieres estas prendas? Volverán a aparecer disponibles en el catálogo.', async ()=>{
     const ids = STATE.cart.map(i=>i.garmentId);
     closeModal();
     for(const id of ids){ await releaseGarment(id); }
@@ -976,6 +987,7 @@ function abandonCart(){
   });
 }
 
+/* ----- Venta directa (uso del administrador: venta presencial en el local) ----- */
 function openCheckoutModal(){
   const p = (STATE.session.mode==='usuario' && STATE.session.profile) ? STATE.session.profile : {};
   openModal(`
@@ -1012,6 +1024,64 @@ async function confirmPurchase(){
   closeModal();
   showTicketResult(ticket);
 }
+
+/* ----- Pedido (uso de clientas/invitadas: queda pendiente de aprobación) ----- */
+function openPedidoModal(){
+  const p = (STATE.session.mode==='usuario' && STATE.session.profile) ? STATE.session.profile : {};
+  openModal(`
+    <div class="modal-head"><h3>Enviar pedido</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Nombre completo</label><input id="pdNombre" placeholder="Nombre y apellido" value="${esc(p.nombre||'')}"></div>
+    <div class="field"><label>Teléfono (WhatsApp)</label><input id="pdTelefono" placeholder="09XXXXXXXX" value="${esc(p.telefono||'')}"></div>
+    <div class="field"><label>Género</label>
+      <select id="pdGenero"><option value="dama">Dama</option><option value="caballero">Caballero</option><option value="nino">Niño/a</option><option value="unisex">Unisex</option></select>
+    </div>
+    <div class="field"><label>Tipo de cliente</label>
+      <select id="pdTipo"><option value="nino">Niño</option><option value="joven">Joven</option><option value="adulto" selected>Adulto</option><option value="adulto_mayor">Adulto mayor</option></select>
+    </div>
+    <div class="cart-total-row"><span>Total</span><span class="amt mono">${money(cartTotal())}</span></div>
+    <button class="btn btn-primary btn-block" id="pdConfirmBtn" style="margin-top:14px;" onclick="submitPedido()">📩 Enviar pedido a la tienda</button>
+  `);
+}
+async function submitPedido(){
+  const nombre = document.getElementById('pdNombre').value.trim();
+  const telefono = document.getElementById('pdTelefono').value.trim();
+  const genero = document.getElementById('pdGenero').value;
+  const tipo = document.getElementById('pdTipo').value;
+  if(!nombre){ toast('Ingresa tu nombre'); return; }
+  if(!telefono){ toast('Ingresa tu teléfono, la tienda lo usará para confirmarte'); return; }
+  const btn = document.getElementById('pdConfirmBtn');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  const uid = STATE.session.mode==='usuario' ? STATE.session.uid : null;
+  try{
+    const pedido = await apiFetch('/pedidos', {method:'POST', body:JSON.stringify({
+      uid, cliente:{nombre, telefono, genero, tipo}, items: STATE.cart.map(i=>({...i})), total: cartTotal()
+    })});
+    STATE.cart = [];
+    saveCart();
+    closeModal();
+    showPedidoEnviado(pedido);
+  }catch(e){
+    console.error(e);
+    toast('No se pudo enviar el pedido, intenta de nuevo');
+    btn.disabled = false; btn.textContent = '📩 Enviar pedido a la tienda';
+  }
+}
+function showPedidoEnviado(pedido){
+  openModal(`
+    <div class="modal-head"><h3>¡Pedido enviado! 📩</h3><button class="close-x" onclick="closeModal(); goView('catalogo');">✕</button></div>
+    <div class="card" style="padding:18px; text-align:center;">
+      <div style="font-size:34px;">⏳</div>
+      <p style="font-size:14px; color:var(--ink); margin:12px 0 4px;">Tu pedido está <b>pendiente de confirmación</b> por la tienda.</p>
+      <p style="font-size:12.5px; color:var(--plum-soft);">Te avisarán por WhatsApp en cuanto lo aprueben.</p>
+      <h2 class="mono" style="font-size:24px; margin:14px 0 4px;">${money(pedido.total)}</h2>
+      <div style="text-align:left; font-size:13px; color:var(--ink); margin-top:10px;">
+        ${pedido.items.map(i=>`<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${i.cantidad}× ${esc(i.nombre)}</span><span class="mono">${money(i.precio*i.cantidad)}</span></div>`).join('')}
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="closeModal(); goView('catalogo');">Seguir viendo el catálogo</button>
+  `);
+}
+
 function showTicketResult(ticket){
   openModal(`
     <div class="modal-head"><h3>¡Compra confirmada!</h3><button class="close-x" onclick="closeModal(); goView('catalogo');">✕</button></div>
@@ -1106,6 +1176,7 @@ function viewCuenta(){
         <div class="tab-chip ${adminTab==='subir'?'active':''}" onclick="setAdminTab('subir')">Subir prenda</div>
         <div class="tab-chip ${adminTab==='catalogo'?'active':''}" onclick="setAdminTab('catalogo')">Catálogo</div>
         <div class="tab-chip ${adminTab==='tickets'?'active':''}" onclick="setAdminTab('tickets')">Tickets</div>
+        <div class="tab-chip ${adminTab==='pedidos'?'active':''}" onclick="setAdminTab('pedidos')">Pedidos${pedidosPendientesCount()>0?` (${pedidosPendientesCount()})`:''}</div>
         <div class="tab-chip ${adminTab==='reporte'?'active':''}" onclick="setAdminTab('reporte')">Reporte</div>
         <div class="tab-chip ${adminTab==='config'?'active':''}" onclick="setAdminTab('config')">Config.</div>
         <div class="tab-chip ${adminTab==='respaldo'?'active':''}" onclick="setAdminTab('respaldo')">Respaldo</div>
@@ -1154,15 +1225,32 @@ function renderUsuarioTab(){
   return usuarioMisCompras();
 }
 function usuarioMisCompras(){
-  if(!STATE.miCompras || STATE.miCompras.length===0){
+  const pendientes = (STATE.misPedidos||[]).filter(p=>p.estado==='pendiente');
+  const rechazados = (STATE.misPedidos||[]).filter(p=>p.estado==='rechazado');
+  const nada = pendientes.length===0 && rechazados.length===0 && (!STATE.miCompras || STATE.miCompras.length===0);
+  if(nada){
     return `<div class="empty-state"><div class="ic">🧾</div>Todavía no tienes compras registradas.</div>`;
   }
-  return STATE.miCompras.map(t=>`
+  let html = '';
+  pendientes.forEach(p=>{
+    html += `<div class="ticket-row" style="border-left:3px solid var(--rosebronze);">
+      <div class="tr-top"><span>⏳ Pendiente de aprobación</span><span class="mono">${money(p.total)}</span></div>
+      <div class="tr-meta">${fmtDate(p.fecha)} · ${p.items.map(i=>`${i.cantidad}× ${esc(i.nombre)}`).join(', ')}</div>
+    </div>`;
+  });
+  rechazados.forEach(p=>{
+    html += `<div class="ticket-row" style="border-left:3px solid var(--danger); opacity:0.7;">
+      <div class="tr-top"><span>❌ Rechazado</span><span class="mono">${money(p.total)}</span></div>
+      <div class="tr-meta">${fmtDate(p.fecha)} · ${p.items.map(i=>`${i.cantidad}× ${esc(i.nombre)}`).join(', ')}</div>
+    </div>`;
+  });
+  html += (STATE.miCompras||[]).map(t=>`
     <div class="ticket-row">
       <div class="tr-top"><span class="tr-num">${t.folio}</span><span class="mono">${money(t.total)}</span></div>
       <div class="tr-meta">${fmtDate(t.fecha)} · ${t.items.map(i=>`${i.cantidad}× ${esc(i.nombre)}`).join(', ')}</div>
       <button class="btn btn-ghost" style="margin-top:8px;padding:6px 10px;font-size:11.5px;" onclick="downloadTicketPDFFromList('${t.id}')">⬇️ Descargar PDF</button>
     </div>`).join('');
+  return html;
 }
 function downloadTicketPDFFromList(ticketId){
   const t = STATE.miCompras.find(x=>x.id===ticketId);
@@ -1184,13 +1272,14 @@ function usuarioMisLooks(){
 
 let adminTab = 'resumen';
 function setAdminTab(t){ adminTab=t; document.getElementById('adminBody').innerHTML = renderAdminTab(); document.querySelectorAll('.tab-chip').forEach(c=>c.classList.toggle('active', c.textContent.trim()===tabLabel(t))); }
-function tabLabel(t){ return {resumen:'Resumen',subir:'Subir prenda',catalogo:'Catálogo',tickets:'Tickets',reporte:'Reporte',config:'Config.',respaldo:'Respaldo'}[t]; }
+function tabLabel(t){ return {resumen:'Resumen',subir:'Subir prenda',catalogo:'Catálogo',tickets:'Tickets',pedidos:'Pedidos',reporte:'Reporte',config:'Config.',respaldo:'Respaldo'}[t]; }
 
 function renderAdminTab(){
   if(adminTab==='resumen') return adminResumen();
   if(adminTab==='subir') return adminSubirForm();
   if(adminTab==='catalogo') return adminCatalogoList();
   if(adminTab==='tickets') return adminTicketsList();
+  if(adminTab==='pedidos') return adminPedidosList();
   if(adminTab==='reporte') return adminReporte();
   if(adminTab==='config') return adminConfig();
   if(adminTab==='respaldo') return adminRespaldo();
@@ -1420,6 +1509,77 @@ function adminTicketsList(){
   `;
 }
 function setTF(k,v){ ticketFilters[k]=v; setAdminTab('tickets'); }
+
+/* ----- Pedidos pendientes de aprobación ----- */
+function pedidosPendientesCount(){ return (STATE.pedidos||[]).filter(p=>p.estado==='pendiente').length; }
+function adminPedidosList(){
+  const pendientes = (STATE.pedidos||[]).filter(p=>p.estado==='pendiente');
+  const procesados = (STATE.pedidos||[]).filter(p=>p.estado!=='pendiente').slice(0,10);
+  return `
+    <div class="section-title" style="margin-top:0;"><h2 style="font-size:16px;">Pendientes de aprobación</h2><span class="hint">${pendientes.length}</span></div>
+    ${pendientes.length===0? '<div class="empty-state">No hay pedidos esperando aprobación 🎉</div>' : pendientes.map(p=>`
+      <div class="card" style="padding:14px; margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:700;">${esc(p.cliente.nombre)}</span>
+          <span class="mono">${money(p.total)}</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--plum-soft);margin:4px 0 8px;">${fmtDate(p.fecha)} · ${generoLabel(p.cliente.genero)} · ${p.cliente.tipo} · 📱 ${esc(p.cliente.telefono||'sin teléfono')}</div>
+        <div style="font-size:12.5px;margin-bottom:10px;">
+          ${p.items.map(i=>`<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>${i.cantidad}× ${esc(i.nombre)}</span><span class="mono">${money(i.precio*i.cantidad)}</span></div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" style="flex:1;padding:9px;font-size:12.5px;" onclick="aprobarPedido('${p.id}')">✅ Aprobar</button>
+          <button class="btn btn-danger" style="flex:1;padding:9px;font-size:12.5px;" onclick="rechazarPedido('${p.id}')">❌ Rechazar</button>
+        </div>
+      </div>`).join('')}
+    ${procesados.length>0? `
+      <div class="section-title"><h2 style="font-size:16px;">Historial reciente</h2></div>
+      ${procesados.map(p=>`
+        <div class="ticket-row">
+          <div class="tr-top"><span>${esc(p.cliente.nombre)}</span><span class="mono">${money(p.total)}</span></div>
+          <div class="tr-meta">${fmtDate(p.fecha)} · ${p.estado==='aprobado'?'✅ Aprobado':'❌ Rechazado'}</div>
+        </div>`).join('')}
+    ` : ''}
+  `;
+}
+async function aprobarPedido(id){
+  try{
+    const res = await apiFetch('/pedidos/'+id, {method:'PATCH', body:JSON.stringify({accion:'aprobar'})});
+    await apiLoadAll();
+    setAdminTab('pedidos');
+    toast('Pedido aprobado ✅ — ticket '+res.ticket.folio+' generado');
+    if(res.ticket.cliente.telefono){
+      openModal(`
+        <div class="modal-head"><h3>Pedido aprobado</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+        <p style="font-size:13px;color:var(--plum-soft);margin-bottom:14px;">¿Quieres avisarle a la clienta por WhatsApp?</p>
+        <button class="btn btn-primary btn-block" onclick="waSendPedidoAprobado('${res.ticket.id}')">💬 Enviar confirmación por WhatsApp</button>
+      `);
+      STATE.tickets = STATE.tickets.find(t=>t.id===res.ticket.id) ? STATE.tickets : [res.ticket, ...STATE.tickets];
+    }
+  }catch(e){
+    console.error(e);
+    toast('No se pudo aprobar el pedido');
+  }
+}
+function rechazarPedido(id){
+  confirmModal('Rechazar pedido', 'Las prendas de este pedido volverán a estar disponibles en el catálogo. ¿Continuar?', async ()=>{
+    closeModal();
+    try{
+      await apiFetch('/pedidos/'+id, {method:'PATCH', body:JSON.stringify({accion:'rechazar'})});
+      await apiLoadAll();
+      setAdminTab('pedidos');
+      toast('Pedido rechazado, prendas liberadas');
+    }catch(e){
+      console.error(e);
+      toast('No se pudo rechazar el pedido');
+    }
+  });
+}
+function waSendPedidoAprobado(ticketId){
+  closeModal();
+  waSendTicket(ticketId);
+}
+
 function exportTicketsExcel(){
   const rows = STATE.tickets.map(t=>({
     Folio:t.folio, Fecha:fmtDate(t.fecha), Cliente:t.cliente.nombre, Telefono:t.cliente.telefono,
