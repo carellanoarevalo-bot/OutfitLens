@@ -302,15 +302,14 @@ nav.bottomnav{
       </div>
       <div class="field">
         <label>Correo</label>
-        <input id="loginUser" type="email" autocomplete="username" placeholder="tu@correo.com">
+        <input id="loginUser" type="email" autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="tu@correo.com">
       </div>
       <div class="field">
         <label>Contraseña</label>
-        <input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••">
+        <input id="loginPass" type="password" autocomplete="new-password" placeholder="••••••••">
       </div>
       <p class="error-msg hidden" id="loginError">Correo o contraseña incorrectos.</p>
       <button class="btn btn-primary btn-block" id="loginBtn" onclick="doAuthSubmit()">Iniciar sesión</button>
-      <div class="skip" onclick="skipLogin()">Continuar sin cuenta →</div>
     </div>
   </div>
 </div>
@@ -393,7 +392,7 @@ let STATE = {
   config: { whatsappTienda: "", nombreTienda: "OutfitLens" },
   counters: { ticketSeq: 0 },
   cart: [],           // [{garmentId, nombre, precio, cantidad, imagen}]
-  session: { isAdmin: false, mode: null }, // mode: 'admin' | 'usuario' | 'guest'
+  session: { isAdmin: false, mode: null }, // mode: 'admin' | 'usuario' (ya no hay modo invitado)
   miCompras: [],      // historial de compras de la clienta logueada
   misLooks: [],       // looks guardados de la clienta logueada
   misPedidos: [],     // pedidos pendientes/rechazados de la clienta logueada
@@ -591,20 +590,18 @@ async function loadMiCuentaData(){
     STATE.misPedidos = data.pedidos || [];
   }catch(e){ console.error('No se pudo cargar el historial de la clienta', e); }
 }
-function skipLogin(){
-  STATE.session = {isAdmin:false, mode:'guest'};
-  localStorage.setItem('ol_auth', JSON.stringify(STATE.session));
-  enterApp();
-}
 function logout(){
   const esAdmin = STATE.session.isAdmin;
   confirmModal('Cerrar sesión', esAdmin ? '¿Deseas salir del modo administrador?' : '¿Deseas cerrar tu sesión?', ()=>{
     if(fbAuth) fbAuth.signOut().catch(()=>{});
-    STATE.session = {isAdmin:false, mode:'guest'};
-    STATE.miCompras = []; STATE.misLooks = [];
+    STATE.session = {isAdmin:false, mode:null};
+    STATE.miCompras = []; STATE.misLooks = []; STATE.misPedidos = [];
+    STATE.cart = []; saveCart();
     localStorage.removeItem('ol_auth');
     closeModal();
-    goView('cuenta');
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('loginScreen').classList.remove('hidden');
+    setAuthMode('login');
     toast('Sesión cerrada');
   });
 }
@@ -1025,7 +1022,7 @@ async function confirmPurchase(){
   showTicketResult(ticket);
 }
 
-/* ----- Pedido (uso de clientas/invitadas: queda pendiente de aprobación) ----- */
+/* ----- Pedido (uso de clientas registradas: queda pendiente de aprobación) ----- */
 function openPedidoModal(){
   const p = (STATE.session.mode==='usuario' && STATE.session.profile) ? STATE.session.profile : {};
   openModal(`
