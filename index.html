@@ -397,7 +397,7 @@ let STATE = {
   misPedidos: [],     // pedidos pendientes/rechazados de la clienta logueada
   pedidos: [],        // pedidos pendientes/procesados (uso admin)
   currentView: 'catalogo',
-  look: { garmentId: null, photo: null, x:50, y:35, scale:100, rotate:0, opacity:85, flip:false, savedImg:null }
+  look: { garmentId: null, x:50, y:38, scale:100, rotate:0, flip:false, savedImg:null }
 };
 
 /* ---------------------------- Persistencia local ---------------------------- */
@@ -658,6 +658,20 @@ function fmtDate(iso){ const d=new Date(iso); return d.toLocaleDateString('es-EC
    VISTA: CATÁLOGO
    ========================================================================= */
 const CATEGORIAS_PRINCIPALES = ['Ropa','Collares','Aretes','Tobilleras','Chompas','Bléiser'];
+
+/* Modelos base (silueta ilustrada) para la prueba de look sin foto del
+   cliente. Carlos puede reemplazar estas 3 constantes más adelante por fotos
+   reales de modelos (mismo formato data:image o una URL) para una prueba más
+   persuasiva y realista. */
+const MODELO_MUJER = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgODAwIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjgwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNGN0YyRUMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRUZFNkQ4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZWxsaXBzZSBjeD0iMzAwLjAiIGN5PSI3NjAiIHJ4PSIxMjAiIHJ5PSIxOCIgZmlsbD0iIzNCMjQzNiIgb3BhY2l0eT0iMC4xMCIvPgogIDwhLS0gcGllcm5hcyAtLT4KICA8cmVjdCB4PSIyNjAuMCIgeT0iNjIwIiB3aWR0aD0iMzAiIGhlaWdodD0iMTIwIiByeD0iMTQiIGZpbGw9IiM1NDM0NEEiLz4KICA8cmVjdCB4PSIzMTAuMCIgeT0iNjIwIiB3aWR0aD0iMzAiIGhlaWdodD0iMTIwIiByeD0iMTQiIGZpbGw9IiM1NDM0NEEiLz4KICA8IS0tIGN1ZXJwbyAodG9yc28gdHJhcGV6b2lkYWwsIHNpcnZlIGRlIGd1aWEgcGFyYSBwcmVuZGFzIHRpcG8gUm9wYSkgLS0+CiAgPHBhdGggZD0iTSAyMjUuMCAyMTAKICAgICAgICAgICBDIDIxNy4wIDM3MCAyMzguNSA0MTAgMjUyLjUgNDMwCiAgICAgICAgICAgTCAyMzAuMCA0NzAKICAgICAgICAgICBMIDIxNy41IDYyMAogICAgICAgICAgIEwgMzgyLjUgNjIwCiAgICAgICAgICAgTCAzNzAuMCA0NzAKICAgICAgICAgICBMIDM0Ny41IDQzMAogICAgICAgICAgIEMgMzYxLjUgNDEwIDM4My4wIDM3MCAzNzUuMCAyMTAKICAgICAgICAgICBaIiBmaWxsPSIjM0IyNDM2Ii8+CiAgPCEtLSBicmF6b3MgLS0+CiAgPHJlY3QgeD0iMTk3LjAiIHk9IjIxNiIgd2lkdGg9IjM0IiBoZWlnaHQ9IjE5MCIgcng9IjE2IiBmaWxsPSIjNTQzNDRBIi8+CiAgPHJlY3QgeD0iMzY5LjAiIHk9IjIxNiIgd2lkdGg9IjM0IiBoZWlnaHQ9IjE5MCIgcng9IjE2IiBmaWxsPSIjNTQzNDRBIi8+CiAgPCEtLSBjdWVsbG8gLS0+CiAgPHJlY3QgeD0iMjgyLjAiIHk9IjE5MCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjMwIiBmaWxsPSIjM0IyNDM2Ii8+CiAgPCEtLSBjYWJlemEgLS0+CiAgPGNpcmNsZSBjeD0iMzAwLjAiIGN5PSIxNTAiIHI9IjQ2IiBmaWxsPSIjM0IyNDM2Ii8+CiAgPCEtLSBhY2VudG8gZG9yYWRvOiBsaW5lYSBkZSAiaG9tYnJvIGEgaG9tYnJvIiB0aXBvIGV0aXF1ZXRhIC0tPgogIDxjaXJjbGUgY3g9IjMwMC4wIiBjeT0iMjA2IiByPSI1IiBmaWxsPSIjQjg4NDVGIi8+Cjwvc3ZnPg==';
+const MODELO_HOMBRE = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgODAwIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjgwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNGN0YyRUMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRUZFNkQ4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZWxsaXBzZSBjeD0iMzAwLjAiIGN5PSI3NjAiIHJ4PSIxMjAiIHJ5PSIxOCIgZmlsbD0iIzNCMjQzNiIgb3BhY2l0eT0iMC4xMCIvPgogIDwhLS0gcGllcm5hcyAtLT4KICA8cmVjdCB4PSIyNTAuMCIgeT0iNTYwIiB3aWR0aD0iNDAiIGhlaWdodD0iMTgwIiByeD0iMTQiIGZpbGw9IiM1NDM0NEEiLz4KICA8cmVjdCB4PSIzMTAuMCIgeT0iNTYwIiB3aWR0aD0iNDAiIGhlaWdodD0iMTgwIiByeD0iMTQiIGZpbGw9IiM1NDM0NEEiLz4KICA8IS0tIGN1ZXJwbyAodG9yc28gdHJhcGV6b2lkYWwsIHNpcnZlIGRlIGd1aWEgcGFyYSBwcmVuZGFzIHRpcG8gUm9wYSkgLS0+CiAgPHBhdGggZD0iTSAyMDcuNSAyMDUKICAgICAgICAgICBDIDE5OS41IDM2MCAyMTEuMCA0MDAgMjI1LjAgNDIwCiAgICAgICAgICAgTCAyMjUuMCA0NjAKICAgICAgICAgICBMIDIyNS4wIDU2MAogICAgICAgICAgIEwgMzc1LjAgNTYwCiAgICAgICAgICAgTCAzNzUuMCA0NjAKICAgICAgICAgICBMIDM3NS4wIDQyMAogICAgICAgICAgIEMgMzg5LjAgNDAwIDQwMC41IDM2MCAzOTIuNSAyMDUKICAgICAgICAgICBaIiBmaWxsPSIjM0IyNDM2Ii8+CiAgPCEtLSBicmF6b3MgLS0+CiAgPHJlY3QgeD0iMTczLjUiIHk9IjIxMSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjE5MCIgcng9IjE2IiBmaWxsPSIjNTQzNDRBIi8+CiAgPHJlY3QgeD0iMzg2LjUiIHk9IjIxMSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjE5MCIgcng9IjE2IiBmaWxsPSIjNTQzNDRBIi8+CiAgPCEtLSBjdWVsbG8gLS0+CiAgPHJlY3QgeD0iMjgyLjAiIHk9IjE5MCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjMwIiBmaWxsPSIjM0IyNDM2Ii8+CiAgPCEtLSBjYWJlemEgLS0+CiAgPGNpcmNsZSBjeD0iMzAwLjAiIGN5PSIxNDgiIHI9IjQ4IiBmaWxsPSIjM0IyNDM2Ii8+CiAgPCEtLSBhY2VudG8gZG9yYWRvOiBsaW5lYSBkZSAiaG9tYnJvIGEgaG9tYnJvIiB0aXBvIGV0aXF1ZXRhIC0tPgogIDxjaXJjbGUgY3g9IjMwMC4wIiBjeT0iMjAxIiByPSI1IiBmaWxsPSIjQjg4NDVGIi8+Cjwvc3ZnPg==';
+const MODELO_NINO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgODAwIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjgwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNGN0YyRUMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRUZFNkQ4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZWxsaXBzZSBjeD0iMzAwLjAiIGN5PSI3NjAiIHJ4PSIxMjAiIHJ5PSIxOCIgZmlsbD0iIzNCMjQzNiIgb3BhY2l0eT0iMC4xMCIvPgogIDwhLS0gcGllcm5hcyAtLT4KICA8cmVjdCB4PSIyNjQuMCIgeT0iNTkwIiB3aWR0aD0iMjYiIGhlaWdodD0iMTEwIiByeD0iMTQiIGZpbGw9IiM1NDM0NEEiLz4KICA8cmVjdCB4PSIzMTAuMCIgeT0iNTkwIiB3aWR0aD0iMjYiIGhlaWdodD0iMTEwIiByeD0iMTQiIGZpbGw9IiM1NDM0NEEiLz4KICA8IS0tIGN1ZXJwbyAodG9yc28gdHJhcGV6b2lkYWwsIHNpcnZlIGRlIGd1aWEgcGFyYSBwcmVuZGFzIHRpcG8gUm9wYSkgLS0+CiAgPHBhdGggZD0iTSAyMzUuMCAzMDAKICAgICAgICAgICBDIDIyNy4wIDQwMCAyMzguNSA0NDAgMjUyLjUgNDYwCiAgICAgICAgICAgTCAyNDUuMCA0OTAKICAgICAgICAgICBMIDI0MC4wIDU5MAogICAgICAgICAgIEwgMzYwLjAgNTkwCiAgICAgICAgICAgTCAzNTUuMCA0OTAKICAgICAgICAgICBMIDM0Ny41IDQ2MAogICAgICAgICAgIEMgMzYxLjUgNDQwIDM3My4wIDQwMCAzNjUuMCAzMDAKICAgICAgICAgICBaIiBmaWxsPSIjM0IyNDM2Ii8+CiAgPCEtLSBicmF6b3MgLS0+CiAgPHJlY3QgeD0iMjEzLjAiIHk9IjMwNiIgd2lkdGg9IjI4IiBoZWlnaHQ9IjE5MCIgcng9IjE2IiBmaWxsPSIjNTQzNDRBIi8+CiAgPHJlY3QgeD0iMzU5LjAiIHk9IjMwNiIgd2lkdGg9IjI4IiBoZWlnaHQ9IjE5MCIgcng9IjE2IiBmaWxsPSIjNTQzNDRBIi8+CiAgPCEtLSBjdWVsbG8gLS0+CiAgPHJlY3QgeD0iMjgyLjAiIHk9IjI4NiIgd2lkdGg9IjM2IiBoZWlnaHQ9IjMwIiBmaWxsPSIjM0IyNDM2Ii8+CiAgPCEtLSBjYWJlemEgLS0+CiAgPGNpcmNsZSBjeD0iMzAwLjAiIGN5PSIyMzAiIHI9IjYyIiBmaWxsPSIjM0IyNDM2Ii8+CiAgPCEtLSBhY2VudG8gZG9yYWRvOiBsaW5lYSBkZSAiaG9tYnJvIGEgaG9tYnJvIiB0aXBvIGV0aXF1ZXRhIC0tPgogIDxjaXJjbGUgY3g9IjMwMC4wIiBjeT0iMjk2IiByPSI1IiBmaWxsPSIjQjg4NDVGIi8+Cjwvc3ZnPg==';
+function modeloParaGenero(genero){
+  if(genero==='caballero') return MODELO_HOMBRE;
+  if(genero==='nino') return MODELO_NINO;
+  return MODELO_MUJER; // dama y unisex usan el modelo mujer por defecto
+}
+
 let catalogoFiltro = 'Ropa';
 function viewCatalogo(){
   const disponibles = STATE.garments.filter(g=>g.activo!==false && (g.estado||'disponible')==='disponible');
@@ -722,19 +736,24 @@ async function reserveGarment(id){
     g.estado='en_carrito';
     STATE.cart.push({garmentId:id, nombre:g.nombre, precio:g.precio, cantidad:1, imagen:g.imagen, categoria:g.categoria, categoriaPrincipal:g.categoriaPrincipal});
     saveCart(); saveLocal(); updateCartBadge();
-    toast('Añadido a tu carrito 🛍️');
-    render();
+    toast('¡Así te ves! 👗');
+    STATE.look.garmentId = id;
+    applyDefaultLookParams(g);
+    goView('look');
   }catch(e){
     if(e.message && e.message.includes('409')){
       toast('Uy, esa prenda ya la reservó otra clienta');
       await apiLoadAll();
+      render();
     }else{
       // Sin conexión a la API: reserva solo local (modo offline)
       g.estado='en_carrito';
       STATE.cart.push({garmentId:id, nombre:g.nombre, precio:g.precio, cantidad:1, imagen:g.imagen, categoria:g.categoria, categoriaPrincipal:g.categoriaPrincipal});
       saveCart(); saveLocal(); updateCartBadge();
+      STATE.look.garmentId = id;
+      applyDefaultLookParams(g);
+      goView('look');
     }
-    render();
   }
 }
 async function releaseGarment(id){
@@ -775,15 +794,31 @@ function openGarmentDetail(id){
 /* =========================================================================
    VISTA: MI LOOK (prueba virtual — overlay hoy, lista para IA real después)
    ========================================================================= */
+/* Posición/tamaño inicial sugerido según la categoría, para que la prenda
+   aparezca razonablemente bien puesta sobre el modelo sin ajustar manualmente. */
+function applyDefaultLookParams(g){
+  const defaults = {
+    Ropa: {x:50, y:38, scale:100},
+    Chompas: {x:50, y:36, scale:105},
+    'Bléiser': {x:50, y:34, scale:100},
+    Collares: {x:50, y:17, scale:32},
+    Aretes: {x:50, y:11, scale:16},
+    Tobilleras: {x:50, y:89, scale:26}
+  };
+  const d = defaults[g.categoriaPrincipal||'Ropa'] || defaults.Ropa;
+  STATE.look.x=d.x; STATE.look.y=d.y; STATE.look.scale=d.scale; STATE.look.rotate=0; STATE.look.flip=false;
+}
 function startTryOnGeneral(){
   const disponibles = STATE.garments.filter(g=>g.activo!==false && (g.estado||'disponible')==='disponible');
   if(disponibles.length===0){ toast('Primero necesitas publicar alguna prenda'); return; }
   STATE.look.garmentId = disponibles[0].id;
+  applyDefaultLookParams(disponibles[0]);
   goView('look');
 }
 function startTryOn(garmentId){
   STATE.look.garmentId = garmentId;
-  STATE.look.x=50; STATE.look.y=35; STATE.look.scale=100; STATE.look.rotate=0; STATE.look.opacity=85; STATE.look.flip=false;
+  const g = STATE.garments.find(x=>x.id===garmentId);
+  if(g) applyDefaultLookParams(g);
   goView('look');
 }
 let tryonCtx = null, tryonImg = null, tryonGarmentImg = null;
@@ -791,47 +826,45 @@ let tryonCtx = null, tryonImg = null, tryonGarmentImg = null;
 function renderLookView(){
   const main = document.getElementById('mainArea');
   const disponibles = STATE.garments.filter(x=>x.activo!==false && (x.estado||'disponible')==='disponible');
-  const g = STATE.garments.find(x=>x.id===STATE.look.garmentId && (x.estado||'disponible')==='disponible') || disponibles[0];
+  let g = STATE.garments.find(x=>x.id===STATE.look.garmentId);
+  // Si la prenda ya está reservada en el carrito, seguimos mostrándola aunque
+  // ya no figure como "disponible" (para poder decidir mantenerla o deshacerla).
+  const enCarrito = g && STATE.cart.some(i=>i.garmentId===g.id);
+  if(!g || (!enCarrito && (g.estado||'disponible')!=='disponible')) g = disponibles[0];
   if(!g){
     main.innerHTML = `<div class="empty-state"><div class="ic">📸</div>Publica una prenda disponible primero para poder probarla.</div>`;
     return;
   }
+  const yaReservada = STATE.cart.some(i=>i.garmentId===g.id);
   const combinaciones = STATE.garments.filter(o=>o.id!==g.id && o.activo!==false && (o.estado||'disponible')==='disponible' && (g.combinaCon||[]).includes(o.categoria));
   main.innerHTML = `
     <div class="section-title"><h2>Mi Look</h2><span class="hint">${esc(g.nombre)}</span></div>
     <select class="field" id="lookGarmentSelect" onchange="changeLookGarment(this.value)" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--ivory-soft);margin-bottom:12px;background:#fff;">
       ${disponibles.map(x=>`<option value="${x.id}" ${x.id===g.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}
+      ${(!disponibles.some(x=>x.id===g.id))? `<option value="${g.id}" selected>${esc(g.nombre)} (en tu carrito)</option>`:''}
     </select>
 
-    <div class="tryon-stage" id="tryonStage">
-      ${STATE.look.photo ? `<canvas id="tryonCanvas"></canvas>` : `
-        <div class="tryon-placeholder">
-          <div style="font-size:32px;">🤳</div>
-          Sube o toma una foto de cuerpo entero (o selfie) con buena luz y fondo simple.
-        </div>`}
-    </div>
+    <div class="tryon-stage" id="tryonStage"><canvas id="tryonCanvas"></canvas></div>
 
-    ${!STATE.look.photo ? `
-      <div style="display:flex; gap:10px; margin-top:12px;">
-        <button class="btn btn-primary" style="flex:1;" onclick="document.getElementById('photoCapture').click()">🤳 Tomar selfie</button>
-        <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('photoUpload').click()">🖼️ Subir foto</button>
+    <div class="tryon-controls">
+      <div class="slider-row"><label>Tamaño</label><input type="range" min="30" max="220" value="${STATE.look.scale}" oninput="updateLook('scale', this.value)"></div>
+      <div class="slider-row"><label>Posición X</label><input type="range" min="0" max="100" value="${STATE.look.x}" oninput="updateLook('x', this.value)"></div>
+      <div class="slider-row"><label>Posición Y</label><input type="range" min="0" max="100" value="${STATE.look.y}" oninput="updateLook('y', this.value)"></div>
+      <div class="slider-row"><label>Rotación</label><input type="range" min="-45" max="45" value="${STATE.look.rotate}" oninput="updateLook('rotate', this.value)"></div>
+    </div>
+    <div class="tryon-actions">
+      <button class="btn btn-ghost" style="flex:1;" onclick="flipGarment()">↔️ Voltear</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveLookSnapshot()">✅ Guardar look</button>
+    </div>
+    <div class="note-box">Vista previa referencial con modelo ilustrado según el género de la prenda — aún no es una foto realista del cliente. Esa opción podrá activarse más adelante conectando un servicio externo de prueba virtual con IA.</div>
+
+    ${yaReservada ? `
+      <div class="tryon-actions" style="margin-top:14px;">
+        <button class="btn btn-danger" style="flex:1;" onclick="releaseGarment('${g.id}')">↩️ Deshacer selección</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="goView('carrito')">🛒 Ir al carrito</button>
       </div>
-      <input type="file" id="photoCapture" accept="image/*" capture="user" class="hidden" onchange="onPhotoChosen(event)">
-      <input type="file" id="photoUpload" accept="image/*" class="hidden" onchange="onPhotoChosen(event)">
     ` : `
-      <div class="tryon-controls">
-        <div class="slider-row"><label>Tamaño</label><input type="range" min="30" max="220" value="${STATE.look.scale}" oninput="updateLook('scale', this.value)"></div>
-        <div class="slider-row"><label>Posición X</label><input type="range" min="0" max="100" value="${STATE.look.x}" oninput="updateLook('x', this.value)"></div>
-        <div class="slider-row"><label>Posición Y</label><input type="range" min="0" max="100" value="${STATE.look.y}" oninput="updateLook('y', this.value)"></div>
-        <div class="slider-row"><label>Rotación</label><input type="range" min="-45" max="45" value="${STATE.look.rotate}" oninput="updateLook('rotate', this.value)"></div>
-        <div class="slider-row"><label>Opacidad</label><input type="range" min="30" max="100" value="${STATE.look.opacity}" oninput="updateLook('opacity', this.value)"></div>
-      </div>
-      <div class="tryon-actions">
-        <button class="btn btn-ghost" style="flex:1;" onclick="flipGarment()">↔️ Voltear</button>
-        <button class="btn btn-ghost" style="flex:1;" onclick="retakePhoto()">🔄 Cambiar foto</button>
-        <button class="btn btn-primary" style="flex:1;" onclick="saveLookSnapshot()">✅ Guardar look</button>
-      </div>
-      <div class="note-box">Vista previa referencial: ajusta la prenda sobre tu foto con los controles. Aún no usa inteligencia artificial fotorrealista — esa opción se activará más adelante conectando un servicio externo de prueba virtual.</div>
+      <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="reserveGarment('${g.id}')">🛒 Agregar esta prenda al carrito</button>
     `}
 
     ${STATE.look.savedImg ? `
@@ -843,13 +876,11 @@ function renderLookView(){
       <div class="section-title"><h2>Combina tu outfit</h2><span class="hint">toca para agregar</span></div>
       <div class="garment-grid">${combinaciones.map(o=>outfitPickCard(o)).join('')}</div>
       <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="addOutfitToCart('${g.id}')">🛍️ Agregar outfit completo al carrito</button>
-    ` : `
-      <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="reserveGarment('${g.id}')">🛒 Agregar esta prenda al carrito</button>
-    `}
+    `:''}
   `;
-  if(STATE.look.photo){ setTimeout(()=>drawTryOnCanvas(g), 30); }
+  setTimeout(()=>drawTryOnCanvas(g), 30);
 }
-function changeLookGarment(id){ STATE.look.garmentId=id; render(); }
+function changeLookGarment(id){ STATE.look.garmentId=id; const g=STATE.garments.find(x=>x.id===id); if(g) applyDefaultLookParams(g); render(); }
 
 const outfitPicks = new Set();
 function outfitPickCard(o){
@@ -868,35 +899,27 @@ function toggleOutfitPick(id){
   render();
 }
 async function addOutfitToCart(mainId){
-  await reserveGarment(mainId);
+  if(!STATE.cart.some(i=>i.garmentId===mainId)) await reserveGarment(mainId);
   for(const id of outfitPicks){ await reserveGarment(id); }
   outfitPicks.clear();
   toast('Outfit agregado al carrito 🛍️');
   goView('carrito');
 }
 
-function onPhotoChosen(ev){
-  const file = ev.target.files[0];
-  if(!file) return;
-  compressImageFile(file, 900, 0.85).then(dataUrl=>{
-    STATE.look.photo = dataUrl;
-    render();
-  });
-}
-function retakePhoto(){ STATE.look.photo=null; STATE.look.savedImg=null; render(); }
+
 function updateLook(key, val){ STATE.look[key] = Number(val); drawTryOnCanvas(STATE.garments.find(x=>x.id===STATE.look.garmentId)); }
 function flipGarment(){ STATE.look.flip = !STATE.look.flip; drawTryOnCanvas(STATE.garments.find(x=>x.id===STATE.look.garmentId)); }
 
 function drawTryOnCanvas(g){
   const canvas = document.getElementById('tryonCanvas');
-  if(!canvas || !STATE.look.photo) return;
+  if(!canvas || !g) return;
   const ctx = canvas.getContext('2d');
   const baseImg = new Image();
   baseImg.onload = ()=>{
     canvas.width = baseImg.width; canvas.height = baseImg.height;
     ctx.clearRect(0,0,canvas.width, canvas.height);
     ctx.drawImage(baseImg,0,0);
-    if(g && g.imagen){
+    if(g.imagen){
       const gi = new Image();
       gi.onload = ()=>{
         const scale = STATE.look.scale/100;
@@ -905,7 +928,6 @@ function drawTryOnCanvas(g){
         const cx = canvas.width * (STATE.look.x/100);
         const cy = canvas.height * (STATE.look.y/100);
         ctx.save();
-        ctx.globalAlpha = STATE.look.opacity/100;
         ctx.translate(cx, cy);
         ctx.rotate(STATE.look.rotate * Math.PI/180);
         if(STATE.look.flip) ctx.scale(-1,1);
@@ -915,7 +937,7 @@ function drawTryOnCanvas(g){
       gi.src = g.imagen;
     }
   };
-  baseImg.src = STATE.look.photo;
+  baseImg.src = modeloParaGenero(g.genero);
 }
 async function saveLookSnapshot(){
   const canvas = document.getElementById('tryonCanvas');
